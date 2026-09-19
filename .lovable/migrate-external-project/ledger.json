@@ -1,0 +1,104 @@
+{
+  "source": "https://github.com/maximilienbrussels/dev-helper-hub-45.git",
+  "assessment": {
+    "framework": "TanStack Start + React 19 + Vite 7 + Tailwind CSS v4",
+    "architecture": "3-tier: public site, admin back office, field PWA; mode chosen by VITE_APP_MODE / hostname / ?mode=",
+    "database": "Neon Postgres, 40 migrations, ~47 tables",
+    "auth": "Custom session auth in Neon (app_users, app_auth_tokens, app_user_identities) + WebAuthn passkeys + Google OAuth + role/permission matrix",
+    "external_providers": [
+      "Neon Postgres (DATABASE_URL)",
+      "Stripe (payments, webhooks, invoices)",
+      "S3/Scaleway object storage (media library)",
+      "Brevo (transactional email)",
+      "Bluesky (social posts)",
+      "Google OAuth",
+      "OpenAI-compatible AI gateway"
+    ]
+  },
+  "ledger": [
+    {
+      "capability": "code",
+      "source": "github",
+      "outcome": "copy_src_public_config_tests",
+      "status": "pending",
+      "next_action": "decide_db_and_auth_approach_then_copy_files"
+    },
+    {
+      "capability": "schema",
+      "source": "neon/migrations",
+      "outcome": "recreate_tables_in_target_db",
+      "status": "pending",
+      "next_action": "choose_lovable_cloud_or_neon_then_apply_migrations"
+    },
+    {
+      "capability": "records",
+      "source": "none_attached",
+      "outcome": "no_initial_records",
+      "status": "pending",
+      "next_action": "request_csv_or_json_exports_after_preview"
+    },
+    {
+      "capability": "auth_identities",
+      "source": "custom_local_auth",
+      "outcome": "replace_with_lovable_auth_or_preserve",
+      "status": "decision_needed",
+      "next_action": "confirm_real_users_exist"
+    },
+    {
+      "capability": "authorization",
+      "source": "role_meta + permission_matrix",
+      "outcome": "preserve_rbac_tables",
+      "status": "pending",
+      "next_action": "align_with_auth_choice"
+    },
+    {
+      "capability": "uploaded_file_bytes",
+      "source": "s3/scaleway",
+      "outcome": "preserve_storage_provider",
+      "status": "pending",
+      "next_action": "request_s3_credentials_then_verify_upload_flow"
+    },
+    {
+      "capability": "external_providers",
+      "source": "stripe/brevo/bluesky/google/openai/aws",
+      "outcome": "preserve_compatible_providers",
+      "status": "pending",
+      "next_action": "request_secrets_via_lovable_secure_form"
+    },
+    {
+      "capability": "public_endpoints",
+      "source": "src/routes/api/public + webhooks",
+      "outcome": "recreate_public_api_routes",
+      "status": "pending",
+      "next_action": "verify_webhook_signatures_after_deploy"
+    },
+    {
+      "capability": "callbacks",
+      "source": "oauth/stripe/checkout/webhooks",
+      "outcome": "preserve_callback_urls",
+      "status": "pending",
+      "next_action": "update_domain_settings_after_cutover"
+    },
+    {
+      "capability": "secrets",
+      "source": "env_vars",
+      "outcome": "populate_lovable_secrets",
+      "status": "pending",
+      "next_action": "collect_database_url_stripe_brevo_s3_oauth_etc"
+    },
+    {
+      "capability": "cutover",
+      "source": "domains",
+      "outcome": "not_needed_for_preview",
+      "status": "pending",
+      "next_action": "configure_custom_domains_only_if_requested"
+    },
+    {
+      "capability": "verification",
+      "source": "build_and_routes",
+      "outcome": "run_build_check_public_and_auth_routes",
+      "status": "pending",
+      "next_action": "execute_after_migration"
+    }
+  ]
+}
