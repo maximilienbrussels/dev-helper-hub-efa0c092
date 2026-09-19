@@ -26,30 +26,30 @@
     {
       "capability": "schema",
       "source": "neon/migrations",
-      "outcome": "neon_schema_files_present",
-      "status": "pending",
-      "next_action": "provide_database_url_then_apply_migrations_or_verify_existing_neon_db"
+      "outcome": "existing_neon_database_connected_and_tables_respond",
+      "status": "verified",
+      "next_action": "none"
     },
     {
       "capability": "records",
-      "source": "none_attached",
-      "outcome": "no_initial_records",
+      "source": "existing_neon_database",
+      "outcome": "data_already_present_in_connected_database",
       "status": "pending",
-      "next_action": "request_csv_or_json_exports_after_preview_if_data_must_be_preserved"
+      "next_action": "confirm_whether_connected_db_is_production_or_request_data_export"
     },
     {
       "capability": "auth_identities",
       "source": "custom_local_auth",
       "outcome": "preserve_custom_neon_auth",
       "status": "implemented",
-      "next_action": "generated_internal_secrets_user_must_provide_existing_ones_for_cutover"
+      "next_action": "test_login_once_user_provides_credentials_or_invites"
     },
     {
       "capability": "authorization",
       "source": "role_meta + permission_matrix",
       "outcome": "preserve_rbac_tables",
-      "status": "pending",
-      "next_action": "verify_after_database_url_provided"
+      "status": "implemented",
+      "next_action": "verify_after_login"
     },
     {
       "capability": "uploaded_file_bytes",
@@ -82,9 +82,9 @@
     {
       "capability": "secrets",
       "source": "env_vars",
-      "outcome": "internal_random_secrets_generated",
+      "outcome": "DATABASE_URL_configured_internal_random_secrets_generated",
       "status": "in_progress",
-      "next_action": "collect_database_url_and_external_provider_keys"
+      "next_action": "collect_external_provider_keys_and_replace_internal_secrets_for_cutover"
     },
     {
       "capability": "cutover",
@@ -96,9 +96,9 @@
     {
       "capability": "verification",
       "source": "build_and_routes",
-      "outcome": "build_succeeds_homepage_renders_data_calls_fail_without_db",
+      "outcome": "build_succeeds_public_homepage_renders_with_live_data_admin_and_field_redirect_to_login",
       "status": "partial",
-      "next_action": "verify_again_after_database_url_provided"
+      "next_action": "verify_login_and_external_provider_flows"
     }
   ]
 }
