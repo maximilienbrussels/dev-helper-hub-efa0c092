@@ -19,37 +19,37 @@
     {
       "capability": "code",
       "source": "github",
-      "outcome": "copy_src_public_config_tests",
-      "status": "pending",
-      "next_action": "decide_db_and_auth_approach_then_copy_files"
+      "outcome": "source_files_copied_and_build_passes",
+      "status": "verified",
+      "next_action": "none"
     },
     {
       "capability": "schema",
       "source": "neon/migrations",
-      "outcome": "recreate_tables_in_target_db",
+      "outcome": "neon_schema_files_present",
       "status": "pending",
-      "next_action": "choose_lovable_cloud_or_neon_then_apply_migrations"
+      "next_action": "provide_database_url_then_apply_migrations_or_verify_existing_neon_db"
     },
     {
       "capability": "records",
       "source": "none_attached",
       "outcome": "no_initial_records",
       "status": "pending",
-      "next_action": "request_csv_or_json_exports_after_preview"
+      "next_action": "request_csv_or_json_exports_after_preview_if_data_must_be_preserved"
     },
     {
       "capability": "auth_identities",
       "source": "custom_local_auth",
-      "outcome": "replace_with_lovable_auth_or_preserve",
-      "status": "decision_needed",
-      "next_action": "confirm_real_users_exist"
+      "outcome": "preserve_custom_neon_auth",
+      "status": "implemented",
+      "next_action": "generated_internal_secrets_user_must_provide_existing_ones_for_cutover"
     },
     {
       "capability": "authorization",
       "source": "role_meta + permission_matrix",
       "outcome": "preserve_rbac_tables",
       "status": "pending",
-      "next_action": "align_with_auth_choice"
+      "next_action": "verify_after_database_url_provided"
     },
     {
       "capability": "uploaded_file_bytes",
@@ -68,9 +68,9 @@
     {
       "capability": "public_endpoints",
       "source": "src/routes/api/public + webhooks",
-      "outcome": "recreate_public_api_routes",
+      "outcome": "routes_present_in_source",
       "status": "pending",
-      "next_action": "verify_webhook_signatures_after_deploy"
+      "next_action": "verify_after_external_provider_setup"
     },
     {
       "capability": "callbacks",
@@ -82,9 +82,9 @@
     {
       "capability": "secrets",
       "source": "env_vars",
-      "outcome": "populate_lovable_secrets",
-      "status": "pending",
-      "next_action": "collect_database_url_stripe_brevo_s3_oauth_etc"
+      "outcome": "internal_random_secrets_generated",
+      "status": "in_progress",
+      "next_action": "collect_database_url_and_external_provider_keys"
     },
     {
       "capability": "cutover",
@@ -96,9 +96,9 @@
     {
       "capability": "verification",
       "source": "build_and_routes",
-      "outcome": "run_build_check_public_and_auth_routes",
-      "status": "pending",
-      "next_action": "execute_after_migration"
+      "outcome": "build_succeeds_homepage_renders_data_calls_fail_without_db",
+      "status": "partial",
+      "next_action": "verify_again_after_database_url_provided"
     }
   ]
 }
