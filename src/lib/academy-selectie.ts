@@ -33,6 +33,21 @@ export function voorSpoor<T extends SelectieVraag>(
   });
 }
 
+/** Minimumdekking voor een inhoudelijk volwaardige, publiceerbare vragenbank. */
+export function controleerPool<T extends SelectieVraag>(alle: T[]) {
+  const kids = voorSpoor(alle, "kids");
+  const adult = voorSpoor(alle, "16plus");
+  const adultPerRonde = [1, 2, 3].map((module) =>
+    adult.filter((v) => (v.module ?? 1) === module).length,
+  );
+  return {
+    kids: kids.length,
+    adult: adult.length,
+    adultPerRonde,
+    publiceerbaar: kids.length >= 8 && adult.length >= 15 && adultPerRonde.every((n) => n >= 5),
+  };
+}
+
 /**
  * Houdt hoogstens één vraag per variantgroep over. `gezien` wordt gedeeld over
  * de rondes heen, zodat niemand dezelfde vraag anders verwoord terugkrijgt.

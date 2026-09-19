@@ -33,18 +33,18 @@ export function academyName(a: MultilingualAcademy, lang: Lang): string {
 
 export function academyDescription(a: MultilingualAcademy, lang: Lang): string | null {
   const byLang = lang === "fr" ? a.beschrijving_fr : lang === "en" ? a.beschrijving_en : null;
-  return pick([byLang, a.beschrijving ?? null], null as string | null);
+  return lang === "nl" ? (a.beschrijving ?? null) : pick([byLang], null as string | null);
 }
 
 export function vraagTekst(v: MultilingualVraag, lang: Lang): string {
   const byLang = lang === "fr" ? v.vraag_tekst_fr : lang === "en" ? v.vraag_tekst_en : null;
-  return pick([byLang], v.vraag_tekst);
+  return lang === "nl" ? v.vraag_tekst : pick([byLang], "");
 }
 
 export function vraagOpties(v: MultilingualVraag, lang: Lang): string[] {
   const byLang = lang === "fr" ? v.opties_fr : lang === "en" ? v.opties_en : null;
   if (byLang && Array.isArray(byLang) && byLang.length === v.opties.length) return byLang;
-  return v.opties;
+  return lang === "nl" ? v.opties : [];
 }
 
 export type MultilingualFeedback = {
@@ -55,5 +55,5 @@ export type MultilingualFeedback = {
 
 export function wistJeDat(f: MultilingualFeedback, lang: Lang): string | null {
   const byLang = lang === "fr" ? f.wist_je_dat_fr : lang === "en" ? f.wist_je_dat_en : null;
-  return pick([byLang, f.wist_je_dat ?? null], null as string | null);
+  return lang === "nl" ? (f.wist_je_dat ?? null) : pick([byLang], null as string | null);
 }

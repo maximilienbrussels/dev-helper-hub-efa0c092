@@ -50,11 +50,11 @@ export const vraagInputSchema = z.object({
   academy_id: z.string().uuid(),
   module: z.number().int().min(1).max(3),
   doelgroep: z.enum(["kids", "16plus", "beide"]).default("beide"),
-  vraag_type: z.enum(["tekst", "beeld", "audio"]),
+  vraag_type: z.enum(["tekst", "beeld", "audio", "getal"]),
   vraag_tekst: text(400),
   vraag_tekst_fr: optional(400),
   vraag_tekst_en: optional(400),
-  opties: z.array(text(200)).min(2).max(6),
+  opties: z.array(text(200)).max(6),
   opties_fr: z.array(z.string().trim().max(200)).max(6).optional().nullable(),
   opties_en: z.array(z.string().trim().max(200)).max(6).optional().nullable(),
   correcte_optie_index: z.number().int().min(0).max(5),
@@ -63,6 +63,34 @@ export const vraagInputSchema = z.object({
   wist_je_dat: optional(600),
   wist_je_dat_fr: optional(600),
   wist_je_dat_en: optional(600),
+  variant_groep: optional(100),
+  verplicht: z.boolean(),
+  moeilijkheid: z.number().int().min(1).max(3),
+  correct_getal: z.number().finite().optional().nullable(),
+  getal_marge: z.number().finite().min(0).default(0),
+  getal_eenheid: optional(80),
+  getal_eenheid_fr: optional(80),
+  getal_eenheid_en: optional(80),
+}).superRefine((v, ctx) => {
+  if (v.doelgroep === "kids" && v.module !== 1) {
+    ctx.addIssue({ code: "custom", path: ["module"], message: "Kindervragen horen in ronde 1." });
+  }
+  if (v.vraag_type === "getal") {
+    if (v.correct_getal === null || v.correct_getal === undefined) {
+      ctx.addIssue({ code: "custom", path: ["correct_getal"], message: "Vul het juiste getal in." });
+    }
+    for (const [field, value] of [
+      ["getal_eenheid", v.getal_eenheid],
+      ["getal_eenheid_fr", v.getal_eenheid_fr],
+      ["getal_eenheid_en", v.getal_eenheid_en],
+    ] as const) {
+      if (!value) ctx.addIssue({ code: "custom", path: [field], message: "Eenheid is verplicht in alle talen." });
+    }
+  } else {
+    if (v.opties.length < 2) ctx.addIssue({ code: "custom", path: ["opties"], message: "Minstens twee antwoorden nodig." });
+    if (!v.opties_fr || v.opties_fr.length !== v.opties.length) ctx.addIssue({ code: "custom", path: ["opties_fr"], message: "FR moet evenveel antwoorden hebben als NL." });
+    if (!v.opties_en || v.opties_en.length !== v.opties.length) ctx.addIssue({ code: "custom", path: ["opties_en"], message: "EN moet evenveel antwoorden hebben als NL." });
+  }
 });
 
 export type VraagInput = z.infer<typeof vraagInputSchema>;

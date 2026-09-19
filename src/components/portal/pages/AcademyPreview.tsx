@@ -28,6 +28,11 @@ export type PreviewVraag = {
   wist_je_dat: string | null;
   wist_je_dat_fr: string | null;
   wist_je_dat_en: string | null;
+  doelgroep?: string | null;
+  correct_getal?: number | null;
+  getal_eenheid?: string | null;
+  getal_eenheid_fr?: string | null;
+  getal_eenheid_en?: string | null;
 };
 
 export type PreviewAcademy = {
@@ -122,7 +127,11 @@ export function AcademyQuizPreview({ a, lang }: { a: PreviewAcademy; lang: Lang 
                       onError={handleImageError}
                     />
                   )}
-                  <ul className="mt-2 space-y-1">
+                   {v.vraag_type === "getal" ? (
+                     <p className="mt-2 rounded-md border border-primary/50 bg-primary/10 px-2 py-1 text-xs font-semibold">
+                       {v.correct_getal} {lang === "fr" ? v.getal_eenheid_fr : lang === "en" ? v.getal_eenheid_en : v.getal_eenheid}
+                     </p>
+                   ) : <ul className="mt-2 space-y-1">
                     {opties.map((o, idx) => (
                       <li
                         key={idx}
@@ -136,7 +145,7 @@ export function AcademyQuizPreview({ a, lang }: { a: PreviewAcademy; lang: Lang 
                         {o || <span className="italic text-destructive">ontbreekt</span>}
                       </li>
                     ))}
-                  </ul>
+                   </ul>}
                   {feedback && (
                     <p className="mt-2 text-xs italic text-muted-foreground">💡 {feedback}</p>
                   )}
@@ -154,9 +163,11 @@ export function AcademyQuizPreview({ a, lang }: { a: PreviewAcademy; lang: Lang 
 export function AcademyPreviewPanel({ academies }: { academies: PreviewAcademy[] }) {
   const [selected, setSelected] = useState(academies[0]?.id ?? "");
   const [lang, setLang] = useState<Lang>("nl");
+  const [doelgroep, setDoelgroep] = useState<"kids" | "16plus">("kids");
   const academy = academies.find((a) => a.id === selected) ?? academies[0];
+  const previewAcademy = academy ? { ...academy, vragen: academy.vragen.filter((v) => !v.doelgroep || v.doelgroep === "beide" || v.doelgroep === doelgroep) } : academy;
 
-  if (!academy) return <p className="text-sm text-muted-foreground">Nog geen academies.</p>;
+  if (!academy || !previewAcademy) return <p className="text-sm text-muted-foreground">Nog geen academies.</p>;
 
   return (
     <div className="space-y-4">
@@ -185,6 +196,10 @@ export function AcademyPreviewPanel({ academies }: { academies: PreviewAcademy[]
             </Button>
           ))}
         </div>
+        <div className="flex gap-1">
+          <Button size="sm" variant={doelgroep === "kids" ? "default" : "outline"} onClick={() => setDoelgroep("kids")}>6–15</Button>
+          <Button size="sm" variant={doelgroep === "16plus" ? "default" : "outline"} onClick={() => setDoelgroep("16plus")}>16+</Button>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -193,7 +208,7 @@ export function AcademyPreviewPanel({ academies }: { academies: PreviewAcademy[]
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {l.toUpperCase()}
             </p>
-            <AcademyCardPreview a={academy} lang={l} />
+            <AcademyCardPreview a={previewAcademy} lang={l} />
           </div>
         ))}
       </div>
@@ -202,7 +217,7 @@ export function AcademyPreviewPanel({ academies }: { academies: PreviewAcademy[]
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Quiz — {lang.toUpperCase()}
         </p>
-        <AcademyQuizPreview a={academy} lang={lang} />
+         <AcademyQuizPreview a={previewAcademy} lang={lang} />
       </div>
     </div>
   );

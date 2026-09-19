@@ -596,7 +596,7 @@ function VraagDialog({
     module: vraag?.module ?? 1,
     doelgroep: ((vraag as { doelgroep?: string } | null)?.doelgroep ?? "beide") as
       "kids" | "16plus" | "beide",
-    vraag_type: (vraag?.vraag_type ?? "tekst") as "tekst" | "beeld" | "audio",
+    vraag_type: (vraag?.vraag_type ?? "tekst") as "tekst" | "beeld" | "audio" | "getal",
     vraag_tekst: vraag?.vraag_tekst ?? "",
     vraag_tekst_fr: vraag?.vraag_tekst_fr ?? "",
     vraag_tekst_en: vraag?.vraag_tekst_en ?? "",
@@ -609,6 +609,14 @@ function VraagDialog({
     wist_je_dat: vraag?.wist_je_dat ?? "",
     wist_je_dat_fr: vraag?.wist_je_dat_fr ?? "",
     wist_je_dat_en: vraag?.wist_je_dat_en ?? "",
+    variant_groep: vraag?.variant_groep ?? "",
+    verplicht: vraag?.verplicht ?? false,
+    moeilijkheid: vraag?.moeilijkheid ?? 2,
+    correct_getal: vraag?.correct_getal == null ? "" : String(vraag.correct_getal),
+    getal_marge: vraag?.getal_marge == null ? "0" : String(vraag.getal_marge),
+    getal_eenheid: vraag?.getal_eenheid ?? "",
+    getal_eenheid_fr: vraag?.getal_eenheid_fr ?? "",
+    getal_eenheid_en: vraag?.getal_eenheid_en ?? "",
   });
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -638,6 +646,14 @@ function VraagDialog({
       wist_je_dat: form.wist_je_dat,
       wist_je_dat_fr: form.wist_je_dat_fr,
       wist_je_dat_en: form.wist_je_dat_en,
+      variant_groep: form.variant_groep,
+      verplicht: form.verplicht,
+      moeilijkheid: form.moeilijkheid,
+      correct_getal: form.correct_getal === "" ? null : Number(form.correct_getal),
+      getal_marge: Number(form.getal_marge || 0),
+      getal_eenheid: form.getal_eenheid,
+      getal_eenheid_fr: form.getal_eenheid_fr,
+      getal_eenheid_en: form.getal_eenheid_en,
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Controleer de velden");
@@ -693,7 +709,19 @@ function VraagDialog({
               <option value="tekst">tekst</option>
               <option value="beeld">beeld</option>
               <option value="audio">audio</option>
+              <option value="getal">getal</option>
             </select>
+          </Field>
+          <Field label="Moeilijkheid">
+            <select value={form.moeilijkheid} onChange={(e) => set("moeilijkheid", Number(e.target.value))} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm">
+              <option value={1}>1 · basis</option><option value={2}>2 · gemiddeld</option><option value={3}>3 · verdiepend</option>
+            </select>
+          </Field>
+          <Field label="Kennisdoel / variantgroep">
+            <Input value={form.variant_groep} onChange={(e) => set("variant_groep", e.target.value)} placeholder="bv. dagelijkse-zorg" />
+          </Field>
+          <Field label="Essentiële welzijnsvraag">
+            <div className="flex h-9 items-center gap-2"><Switch checked={form.verplicht} onCheckedChange={(v) => set("verplicht", v)} /><span className="text-xs text-muted-foreground">Iedere deelnemer krijgt deze vraag</span></div>
           </Field>
           <Field label="Vraag (NL)" full>
             <Textarea
@@ -713,35 +741,42 @@ function VraagDialog({
               onChange={(e) => set("vraag_tekst_en", e.target.value)}
             />
           </Field>
-          <Field label="Opties NL (één per lijn)">
+          {form.vraag_type !== "getal" && <Field label="Opties NL (één per lijn)">
             <Textarea
               rows={4}
               value={form.opties}
               onChange={(e) => set("opties", e.target.value)}
             />
-          </Field>
-          <Field label="Index juist antwoord (0 = eerste)">
+          </Field>}
+          {form.vraag_type !== "getal" && <Field label="Index juist antwoord (0 = eerste)">
             <Input
               type="number"
               min={0}
               value={form.correcte_optie_index}
               onChange={(e) => set("correcte_optie_index", Number(e.target.value))}
             />
-          </Field>
-          <Field label="Opties FR (zelfde volgorde)">
+          </Field>}
+          {form.vraag_type !== "getal" && <Field label="Opties FR (zelfde volgorde)">
             <Textarea
               rows={4}
               value={form.opties_fr}
               onChange={(e) => set("opties_fr", e.target.value)}
             />
-          </Field>
-          <Field label="Opties EN (zelfde volgorde)">
+          </Field>}
+          {form.vraag_type !== "getal" && <Field label="Opties EN (zelfde volgorde)">
             <Textarea
               rows={4}
               value={form.opties_en}
               onChange={(e) => set("opties_en", e.target.value)}
             />
-          </Field>
+          </Field>}
+          {form.vraag_type === "getal" && <>
+            <Field label="Juist getal"><Input type="number" step="any" value={form.correct_getal} onChange={(e) => set("correct_getal", e.target.value)} /></Field>
+            <Field label="Toegestane afwijking"><Input type="number" min={0} step="any" value={form.getal_marge} onChange={(e) => set("getal_marge", e.target.value)} /></Field>
+            <Field label="Eenheid (NL)"><Input value={form.getal_eenheid} onChange={(e) => set("getal_eenheid", e.target.value)} /></Field>
+            <Field label="Eenheid (FR)"><Input value={form.getal_eenheid_fr} onChange={(e) => set("getal_eenheid_fr", e.target.value)} /></Field>
+            <Field label="Eenheid (EN)"><Input value={form.getal_eenheid_en} onChange={(e) => set("getal_eenheid_en", e.target.value)} /></Field>
+          </>}
           <Field label="Afbeelding (optioneel)">
             <ImageUploader
               value={form.media_url || null}

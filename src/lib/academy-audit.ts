@@ -18,6 +18,14 @@ export type AuditVraag = {
   wist_je_dat: string | null;
   wist_je_dat_fr: string | null;
   wist_je_dat_en: string | null;
+  doelgroep?: string | null;
+  vraag_type?: string | null;
+  variant_groep?: string | null;
+  verplicht?: boolean | null;
+  moeilijkheid?: number | null;
+  getal_eenheid?: string | null;
+  getal_eenheid_fr?: string | null;
+  getal_eenheid_en?: string | null;
 };
 
 export type AuditAcademy = {
@@ -100,7 +108,10 @@ export function auditVraag(v: AuditVraag): AuditIssue[] {
     }
 
     const opties = asArray(lang === "fr" ? v.opties_fr : v.opties_en);
-    if (!opties || opties.length === 0) {
+    if (v.vraag_type === "getal") {
+      const eenheid = lang === "fr" ? v.getal_eenheid_fr : v.getal_eenheid_en;
+      if (!filled(eenheid)) issues.push({ scope: "vraag", ref: v.id, module, field: "getal_eenheid", lang, reason: "ontbreekt" });
+    } else if (!opties || opties.length === 0) {
       issues.push({
         scope: "vraag",
         ref: v.id,
