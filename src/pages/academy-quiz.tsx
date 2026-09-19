@@ -248,7 +248,7 @@ export function AcademyQuiz({ slug }: { slug: string }) {
   const load = useCallback(() => {
     if (!doelgroep) return Promise.resolve();
     setLoading(true);
-    return startFn({ data: { slug, doelgroep } })
+    return startFn({ data: { slug, doelgroep, lang } })
       .then((res) => {
         setAcademy(res.academy as Academy);
         setVragen(res.vragen as Vraag[]);
@@ -264,7 +264,7 @@ export function AcademyQuiz({ slug }: { slug: string }) {
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : t("aca.loadError")))
       .finally(() => setLoading(false));
-  }, [slug, doelgroep, startFn, t]);
+  }, [slug, doelgroep, lang, startFn, t]);
 
   useEffect(() => {
     void load();
@@ -534,6 +534,8 @@ export function AcademyQuiz({ slug }: { slug: string }) {
   const fb = vraag ? feedback[vraag.id] : undefined;
   const feedbackTekst = fb ? wistJeDat(fb, lang) : null;
   const allAnswered = vragen.every((v) => feedback[v.id] !== undefined);
+  const afgerond = vragen.filter((v) => feedback[v.id] !== undefined).length;
+  const totaalPct = totaal ? Math.round((afgerond / totaal) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[color:var(--surface-page)] text-foreground">
@@ -579,6 +581,12 @@ export function AcademyQuiz({ slug }: { slug: string }) {
 
         {/* Voortgangsbalken per module, uitgelijnd met de titels */}
         <div className="mx-auto max-w-3xl px-4 pb-3 md:px-8">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={totaalPct} aria-valuemin={0} aria-valuemax={100}>
+              <div className="h-full rounded-full bg-primary transition-all duration-500 motion-reduce:transition-none" style={{ width: `${totaalPct}%` }} />
+            </div>
+            <span className="w-10 text-right text-xs font-semibold text-muted-foreground">{totaalPct}%</span>
+          </div>
           <div
             className="grid gap-2"
             style={{ gridTemplateColumns: `repeat(${modules.length}, minmax(0, 1fr))` }}

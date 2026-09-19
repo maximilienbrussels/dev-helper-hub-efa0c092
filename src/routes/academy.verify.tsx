@@ -1,10 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, ShieldAlert } from "lucide-react";
 import { MLogo } from "@/components/MLogo";
 import { NavHeader } from "@/components/NavHeader";
 import { useT } from "@/lib/i18n";
 import { isKidsCertCode } from "@/lib/kids-cert";
 import { KidsWaxSeal } from "@/components/academy/KidsFarmArt";
+import { LocalLink } from "@/components/LocalLink";
+import { pathFor } from "@/lib/routes-i18n";
 
 /**
  * Publieke echtheidscontrole voor kinderdiploma's (`KND-JJJJ-NNNN`).
@@ -108,9 +110,9 @@ function AcademyVerifyPage() {
           </div>
         )}
 
-        <Link to="/academy" className="mt-8 text-sm text-primary hover:underline">
+        <LocalLink to={pathFor("academy", lang)} className="mt-8 text-sm text-primary hover:underline">
           {copy.back}
-        </Link>
+        </LocalLink>
       </main>
     </>
   );

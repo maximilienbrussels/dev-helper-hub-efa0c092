@@ -219,11 +219,11 @@ const MODULES: ModulesBySlug = {
 
 /**
  * Competenties voor een academie in de gevraagde taal.
- * Valt terug op de Nederlandse lijst en vervolgens op de generieke lijst,
- * zodat élke diersoort — ook nieuwe — een volwaardige achterzijde krijgt.
+ * Valt nooit terug op Nederlandstalige dierinhoud: ontbreekt een vertaling,
+ * dan gebruiken we de professionele generieke tekst in de gekozen taal.
  */
 export function academyModules(slug: string | undefined | null, lang: CertLang): CertModule[] {
   const key = (slug ?? "").trim().toLowerCase();
   const entry = MODULES[key];
-  return entry?.[lang] ?? entry?.nl ?? GENERIC[lang] ?? GENERIC.nl;
+  return entry?.[lang] ?? GENERIC[lang];
 }

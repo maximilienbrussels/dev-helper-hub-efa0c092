@@ -69,7 +69,7 @@ export const listAcademies = createServerFn({ method: "GET" }).handler(async () 
 // ---------- Publiek: één academy + willekeurige vragen (zonder correct antwoord) ----------
 export const startExamen = createServerFn({ method: "POST" })
   .validator((d: unknown) =>
-    z.object({ slug: z.string(), doelgroep: z.enum(["kids", "16plus"]).default("kids") }).parse(d),
+    z.object({ slug: z.string(), doelgroep: z.enum(["kids", "16plus"]).default("kids"), lang: z.enum(["nl", "fr", "en"]) }).parse(d),
   )
   .handler(async ({ data }) => {
     const sql = db();
@@ -124,19 +124,36 @@ export const startExamen = createServerFn({ method: "POST" })
        where academy_id = ${academy.id}
     `) as Row[];
 
+    const localized = (vragen ?? []).filter((v) => {
+      if (data.lang === "nl") return Boolean(v.vraag_tekst?.trim());
+      const tekst = data.lang === "fr" ? v.vraag_tekst_fr : v.vraag_tekst_en;
+      if (!tekst?.trim()) return false;
+      if ((v.vraag_type ?? "tekst") === "getal") {
+        const unit = data.lang === "fr" ? v.getal_eenheid_fr : v.getal_eenheid_en;
+        return Boolean(unit?.trim());
+      }
+      const translated = data.lang === "fr" ? v.opties_fr : v.opties_en;
+      return Array.isArray(translated) && translated.length === ((v.opties as unknown[]) ?? []).length;
+    });
+
     const gewenst =
       (data.doelgroep === "kids" ? academy.vragen_per_test_kids : academy.vragen_per_test_16plus) ??
       academy.vragen_per_test;
     // Enkel vragen van dit leeftijdsspoor tellen mee: liever een kortere test
     // dan vragen die niet bij de leeftijd passen.
     const { voorSpoor } = await import("./academy-selectie");
-    const spoorPool = voorSpoor(vragen ?? [], data.doelgroep);
+    const spoorPool = voorSpoor(localized, data.doelgroep);
+    const minimalePool = data.doelgroep === "kids" ? 8 : 15;
+    const rondeDekking = data.doelgroep === "16plus" && [1, 2, 3].every((m) => spoorPool.filter((v) => (v.module ?? 1) === m).length >= 5);
+    if (spoorPool.length < minimalePool || (data.doelgroep === "16plus" && !rondeDekking)) {
+      throw new Error("Deze Academy is nog niet volledig beschikbaar in deze taal.");
+    }
     const aantal = Math.max(1, Math.min(gewenst, spoorPool.length || gewenst));
     const slaagGrens =
       (data.doelgroep === "kids" ? academy.slaag_grens_kids : academy.slaag_grens_16plus) ??
       academy.slaag_grens;
 
-    const selected = kiesVragen(vragen ?? [], { doelgroep: data.doelgroep, aantal });
+    const selected = kiesVragen(localized, { doelgroep: data.doelgroep, aantal });
     const sessie = nieuweSessie();
 
     return {

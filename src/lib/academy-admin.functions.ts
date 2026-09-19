@@ -10,12 +10,29 @@ import {
   publishDecisionSchema,
 } from "@/lib/academy-admin-schema";
 import { auditAll, type AuditAcademy } from "@/lib/academy-audit";
+import { controleerPool } from "@/lib/academy-selectie";
 
 const ACADEMY_COLUMNS =
   "id, slug, diersoort_naam, diersoort_naam_fr, diersoort_naam_en, beschrijving, beschrijving_fr, beschrijving_en, categorie, badge_icon, cover_image_url, cover_image_alt, vragen_per_test, slaag_grens, prioriteit, is_active, status, created_by, review_requested_by, review_requested_at, review_note, reviewed_by, reviewed_at";
 
 const VRAAG_COLUMNS =
-  "id, academy_id, module, doelgroep, vraag_type, vraag_tekst, vraag_tekst_fr, vraag_tekst_en, opties, opties_fr, opties_en, correcte_optie_index, media_url, media_alt, wist_je_dat, wist_je_dat_fr, wist_je_dat_en";
+  "id, academy_id, module, doelgroep, vraag_type, vraag_tekst, vraag_tekst_fr, vraag_tekst_en, opties, opties_fr, opties_en, correcte_optie_index, media_url, media_alt, wist_je_dat, wist_je_dat_fr, wist_je_dat_en, variant_groep, verplicht, moeilijkheid, correct_getal, getal_marge, getal_eenheid, getal_eenheid_fr, getal_eenheid_en";
+
+async function assertPubliceerbaar(id: string) {
+  const [a, q] = await Promise.all([
+    dbAdmin.from("academies").select("id, slug, diersoort_naam, diersoort_naam_fr, diersoort_naam_en, beschrijving, beschrijving_fr, beschrijving_en, categorie, status, is_active").eq("id", id).single(),
+    dbAdmin.from("academy_vragen").select(VRAAG_COLUMNS).eq("academy_id", id),
+  ]);
+  if (a.error || !a.data) throw new Error(a.error?.message ?? "Academy bestaat niet.");
+  if (q.error) throw new Error(q.error.message);
+  const vragen = (q.data ?? []).map((v) => ({ ...v, opties: v.opties as unknown, opties_fr: v.opties_fr as unknown, opties_en: v.opties_en as unknown }));
+  const audit = auditAll([{ ...a.data, vragen } as AuditAcademy]);
+  if (!audit.complete) throw new Error(`Publiceren geblokkeerd: los eerst ${audit.totalIssues} ontbrekende vertaling(en) op.`);
+  const pool = controleerPool(vragen);
+  if (!pool.publiceerbaar) {
+    throw new Error(`Publiceren geblokkeerd: minimaal 8 kindervragen en 5 vragen in elk van de drie 16+-rondes vereist (nu ${pool.kids}; rondes ${pool.adultPerRonde.join("/")}).`);
+  }
+}
 
 /** Alle academies (ook concepten) met hun vragen — voor beheer, preview en controle. */
 export const fetchAcademyAdmin = createServerFn({ method: "GET" })
@@ -85,7 +102,7 @@ export const auditAcademyTranslations = createServerFn({ method: "GET" })
       dbAdmin
         .from("academy_vragen")
         .select(
-          "id, academy_id, module, vraag_tekst, vraag_tekst_fr, vraag_tekst_en, opties, opties_fr, opties_en, wist_je_dat, wist_je_dat_fr, wist_je_dat_en",
+          "id, academy_id, module, doelgroep, vraag_type, vraag_tekst, vraag_tekst_fr, vraag_tekst_en, opties, opties_fr, opties_en, wist_je_dat, wist_je_dat_fr, wist_je_dat_en, variant_groep, verplicht, moeilijkheid, getal_eenheid, getal_eenheid_fr, getal_eenheid_en",
         ),
     ]);
     if (academies.error) throw new Error(academies.error.message);
@@ -107,6 +124,14 @@ export const auditAcademyTranslations = createServerFn({ method: "GET" })
           wist_je_dat: v.wist_je_dat,
           wist_je_dat_fr: v.wist_je_dat_fr,
           wist_je_dat_en: v.wist_je_dat_en,
+          doelgroep: v.doelgroep,
+          vraag_type: v.vraag_type,
+          variant_groep: v.variant_groep,
+          verplicht: v.verplicht,
+          moeilijkheid: v.moeilijkheid,
+          getal_eenheid: v.getal_eenheid,
+          getal_eenheid_fr: v.getal_eenheid_fr,
+          getal_eenheid_en: v.getal_eenheid_en,
         })),
     }));
     return auditAll(rows);
@@ -160,6 +185,7 @@ export const setAcademyStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requirePermission(context, "publish_academy");
+    if (data.status === "gepubliceerd") await assertPubliceerbaar(data.id);
     const { error } = await dbAdmin
       .from("academies")
       .update({
@@ -190,12 +216,14 @@ export const saveVraag = createServerFn({ method: "POST" })
   .validator((d: unknown) => vraagInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requirePermission(context, "manage_academy");
-    if (data.correcte_optie_index >= data.opties.length) {
+    if (data.vraag_type !== "getal" && data.correcte_optie_index >= data.opties.length) {
       throw new Error("Het juiste antwoord verwijst naar een optie die niet bestaat.");
     }
     const { id, ...fields } = data;
     const payload = {
       ...fields,
+      module: fields.doelgroep === "kids" ? 1 : fields.module,
+      opties: fields.vraag_type === "getal" ? [] : fields.opties,
       opties_fr: fields.opties_fr && fields.opties_fr.length > 0 ? fields.opties_fr : null,
       opties_en: fields.opties_en && fields.opties_en.length > 0 ? fields.opties_en : null,
       updated_at: new Date().toISOString(),
@@ -231,6 +259,7 @@ export const requestAcademyPublication = createServerFn({ method: "POST" })
   .validator((d: unknown) => publishRequestSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requirePermission(context, "manage_academy");
+    await assertPubliceerbaar(data.academy_id);
     const email = (context.claims as { email?: string } | undefined)?.email ?? null;
 
     const { data: academy, error: aErr } = await dbAdmin
