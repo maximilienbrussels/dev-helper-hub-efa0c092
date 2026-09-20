@@ -3,7 +3,7 @@ import type { Lang } from "./portal-types";
 export const LANGS: Lang[] = ["fr", "nl", "en"];
 
 export type PortalPage =
-    | "today" | "requests" | "calendar" | "services" | "shop" | "academy" | "social" | "team"
+    | "today" | "requests" | "calendar" | "services" | "shop" | "academy" | "results" | "social" | "team"
   | "email" | "site" | "log" | "api" | "copilot" | "albums" | "residents" | "pickups";
 
 export const PORTAL_PAGES: PortalPage[] = [
@@ -14,6 +14,7 @@ export const PORTAL_PAGES: PortalPage[] = [
   "shop",
   "pickups",
   "academy",
+  "results",
   "social",
   "albums",
   "residents",
@@ -35,6 +36,7 @@ export const SLUGS: Record<Lang, Record<PortalPage, string>> = {
     shop: "producten",
     pickups: "afhalingen",
     academy: "academies",
+    results: "resultaten",
     social: "sociaal",
     albums: "fotoalbums",
     residents: "bewoners",
@@ -53,6 +55,7 @@ export const SLUGS: Record<Lang, Record<PortalPage, string>> = {
     shop: "produits",
     pickups: "retraits",
     academy: "academies",
+    results: "resultats",
     social: "social",
     albums: "albums-photos",
     residents: "residents",
@@ -71,6 +74,7 @@ export const SLUGS: Record<Lang, Record<PortalPage, string>> = {
     shop: "products",
     pickups: "pickups",
     academy: "academies",
+    results: "results",
     social: "social",
     albums: "photo-albums",
     residents: "residents",
@@ -134,6 +138,11 @@ export const PAGE_META: Record<PortalPage, { title: string; description: string 
     title: "Academies — Beheerportaal Ferme du Parc",
     description:
       "Beheer academykaarten en quizvragen in NL/FR/EN, bekijk de preview zoals bezoekers ze zien en vraag goedkeuring om live te gaan.",
+  },
+  results: {
+    title: "Academy-resultaten — Beheerportaal Maxilien",
+    description:
+      "Vergelijk slagingspercentages, uitvalmomenten en gemiddelde scores per dier, leeftijdscategorie en taal.",
   },
   social: {
     title: "Social — Beheerportaal Ferme du Parc",
