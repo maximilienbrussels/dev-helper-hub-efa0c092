@@ -19,6 +19,7 @@ import { ServicesPage } from "@/components/portal/pages/ServicesPage";
 import { ShopPage } from "@/components/portal/pages/ShopPage";
 import { PickupsPage } from "@/components/portal/pages/PickupsPage";
 import { AcademyPage } from "@/components/portal/pages/AcademyPage";
+import { ResultsPage } from "@/components/portal/pages/ResultsPage";
 import { TeamPage } from "@/components/portal/pages/TeamPage";
 import { EmailPage } from "@/components/portal/pages/EmailPage";
 import { SocialPage } from "@/components/portal/pages/SocialPage";
@@ -37,6 +38,7 @@ const PAGES: Record<PortalPage, () => React.ReactElement> = {
   shop: ShopPage,
   pickups: PickupsPage,
   academy: AcademyPage,
+  results: ResultsPage,
   social: SocialPage,
   albums: AlbumsPage,
   residents: ResidentsPage,
@@ -57,6 +59,7 @@ export const PAGE_PERMISSION: Record<PortalPage, Permission> = {
   pickups: "manage_orders",
   shop: "view_shop",
   academy: "view_academy",
+  results: "view_academy",
   social: "view_media",
   albums: "view_media",
   residents: "view_media",
