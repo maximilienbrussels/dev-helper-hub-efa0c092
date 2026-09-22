@@ -51,6 +51,9 @@ export function parseScanned(raw: string): { code: string; sig?: string } | null
  * een vriendelijke "niet gevonden"-status met handmatige zoekbalk.
  */
 export const Route = createFileRoute("/verifieer/$code")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    s: typeof search["s"] === "string" ? (search["s"] as string) : undefined,
+  }),
   head: ({ params }) => ({
     meta: [
       { title: `Certificaat #${params.code} — officiële verificatie` },
