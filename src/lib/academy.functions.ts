@@ -497,7 +497,14 @@ export const getCertificaat = createServerFn({ method: "POST" })
        where id = ${cert.academy_id}::uuid
        limit 1
     `) as Aca[])[0] ?? null;
-    return { certificaat: cert, academy };
+    // Ondertekende QR: enkel met deze handtekening toont de publieke
+    // verificatiepagina het volledige certificaatbeeld.
+    const { certCode } = await import("@/lib/cert-code");
+    const { signCertCodeSafe } = await import("@/lib/academy-sig.server");
+    const qr_sig = await signCertCodeSafe(
+      certCode(academy?.slug, cert.behaald_op, cert.volgnummer),
+    );
+    return { certificaat: cert, academy, qr_sig };
   });
 
 // ---------- Beveiligd: eigen (meest recente) certificaat voor één academie-slug ----------

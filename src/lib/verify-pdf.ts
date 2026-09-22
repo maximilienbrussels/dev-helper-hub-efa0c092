@@ -2,6 +2,9 @@
  * Client-side PDF-download van een geverifieerd certificaat, gegenereerd
  * met `jspdf` (zelfde bibliotheek als `pdf-invoice.server.ts`). Bewust géén
  * `window.print()`: dit levert een echt, deelbaar PDF-bestand op.
+ *
+ * Het blad draagt altijd het watermerk "geverifieerd exemplaar", zodat een
+ * afdruk nooit met het originele certificaat verward kan worden.
  */
 export type VerifiedCertPdfData = {
   code: string;
@@ -17,6 +20,12 @@ export async function downloadVerifiedCertificatePdf(data: VerifiedCertPdfData):
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
   const left = 24;
   let y = 40;
+
+  // Watermerk eerst, zodat de tekst er leesbaar bovenop komt.
+  doc.setFont("helvetica", "bold").setFontSize(56);
+  doc.setTextColor(214, 222, 214);
+  doc.text("GEVERIFIEERD EXEMPLAAR", 148, 120, { align: "center", angle: 24 });
+  doc.setTextColor(20, 30, 22);
 
   doc.setFont("helvetica", "bold").setFontSize(11);
   doc.text("LA FERME DU PARC MAXIMILIEN", left, 24);
@@ -47,6 +56,12 @@ export async function downloadVerifiedCertificatePdf(data: VerifiedCertPdfData):
   doc.text(`Certificaatreferentie: #${data.code}`, left, y);
   y += 6;
   doc.text(`Verifieer online: ${data.verifyUrl}`, left, y);
+  y += 6;
+  doc.text(
+    "Dit document is een geverifieerd exemplaar, afgedrukt via de publieke verificatiepagina.",
+    left,
+    y,
+  );
 
   doc.save(`certificaat-${data.code}.pdf`);
 }

@@ -201,8 +201,9 @@ function CertificaatPage() {
   const modules = academyModules(academy?.slug, certLang);
   // Publieke verificatiepagina — altijd de canonieke URL, ook op papier.
   const verifyUrl = certVerifyUrl(certificaat.public_token, certificaat.id);
-  // QR op het A4-certificaat verwijst naar de leesbare, officiële code-URL.
-  const qrUrl = certVerifyCodeUrl(code);
+  // QR op het A4-certificaat verwijst naar de leesbare, officiële code-URL,
+  // ondertekend met een servergeheim zodat vervalsing onmogelijk is.
+  const qrUrl = certVerifyCodeUrl(code, data.qr_sig);
   const linkedinUrl =
     "https://www.linkedin.com/profile/add?" +
     new URLSearchParams({
