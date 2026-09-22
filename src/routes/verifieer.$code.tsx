@@ -75,19 +75,23 @@ export const Route = createFileRoute("/verifieer/$code")({
 
 function VerifieerCodePage() {
   const { code } = Route.useParams();
+  const { s: sig } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { lang } = useT();
   const byToken = useServerFn(verifyCertificaat);
   const byCode = useServerFn(verifyCertificaatByCode);
   const clean = code.trim().replace(/^#/, "");
   const [value, setValue] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ["verifieer-code", clean],
+    queryKey: ["verifieer-code", clean, sig ?? ""],
     enabled: clean.length >= 6,
     retry: false,
     queryFn: () =>
-      UUID.test(clean) ? byToken({ data: { token: clean } }) : byCode({ data: { code: clean } }),
+      UUID.test(clean)
+        ? byToken({ data: { token: clean, sig } })
+        : byCode({ data: { code: clean, sig } }),
   });
 
   // Een netwerk-/serverfout mag nooit blijven hangen op "controleren…":
@@ -102,7 +106,27 @@ function VerifieerCodePage() {
     failureReason === "not_found" && parsedPrefix ? closestCertPrefixes(parsedPrefix) : [];
 
   const verifyUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/verifieer/${clean}` : certVerifyCodeUrl(clean);
+    typeof window !== "undefined"
+      ? `${window.location.origin}/verifieer/${clean}${sig ? `?s=${encodeURIComponent(sig)}` : ""}`
+      : certVerifyCodeUrl(clean, sig);
+
+  /** Verwerkt een gescande QR: navigeert naar de code met handtekening. */
+  const onScan = useCallback(
+    (raw: string) => {
+      const hit = parseScanned(raw);
+      if (!hit) {
+        toast.error("Deze QR-code hoort niet bij een certificaat.");
+        return;
+      }
+      setScanOpen(false);
+      navigate({
+        to: "/verifieer/$code",
+        params: { code: hit.code },
+        search: hit.sig ? { s: hit.sig } : {},
+      });
+    },
+    [navigate],
+  );
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
