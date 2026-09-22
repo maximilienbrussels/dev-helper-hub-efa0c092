@@ -196,6 +196,10 @@ export function AcademyQuiz({ slug }: { slug: string }) {
   const finishPogingFn = useServerFn(finishPoging);
   /** Anoniem poging-id voor de statistieken; nooit blokkerend. */
   const pogingRef = useRef<string | null>(null);
+  /** Focus en toetsenbord: de vraagkop krijgt focus bij elke nieuwe vraag. */
+  const vraagKopRef = useRef<HTMLHeadingElement | null>(null);
+  const optiesRef = useRef<HTMLUListElement | null>(null);
+  const [focusOptie, setFocusOptie] = useState(0);
   const saveProfile = useServerFn(updateMyProfile);
 
   const [academy, setAcademy] = useState<Academy | null>(null);
@@ -290,6 +294,12 @@ export function AcademyQuiz({ slug }: { slug: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Nieuwe vraag: focus naar de vraagtekst zodat schermlezers meelezen.
+  useEffect(() => {
+    setFocusOptie(0);
+    vraagKopRef.current?.focus();
+  }, [moduleIdx, qIdx]);
 
   // Stop voorlezen en audio bij het wisselen van vraag.
   useEffect(() => {
@@ -702,7 +712,11 @@ export function AcademyQuiz({ slug }: { slug: string }) {
               </div>
 
               <div className="mt-3 flex items-start gap-3">
-                <h1 className="flex-1 text-lg font-semibold break-words hyphens-auto sm:text-xl md:text-2xl">
+                <h1
+                  ref={vraagKopRef}
+                  tabIndex={-1}
+                  className="flex-1 text-lg font-semibold break-words hyphens-auto outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-terracotta)] sm:text-xl md:text-2xl"
+                >
                   {vraagTekst(vraag, lang)}
                 </h1>
                 {speech.supported && (
@@ -837,7 +851,36 @@ export function AcademyQuiz({ slug }: { slug: string }) {
                   )}
                 </div>
               ) : (
-                <ul className="mt-6 space-y-3">
+                <ul
+                  ref={optiesRef}
+                  role="radiogroup"
+                  aria-label={vraagTekst(vraag, lang)}
+                  className="mt-6 space-y-3"
+                  onKeyDown={(e) => {
+                    if (fb || checking) return;
+                    const n = vraagOpties(vraag, lang).length;
+                    if (!n) return;
+                    const focusItem = (i: number) => {
+                      setFocusOptie(i);
+                      const el = optiesRef.current?.querySelectorAll("button")[i];
+                      (el as HTMLButtonElement | undefined)?.focus();
+                    };
+                    if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+                      e.preventDefault();
+                      focusItem((focusOptie + 1) % n);
+                    } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+                      e.preventDefault();
+                      focusItem((focusOptie - 1 + n) % n);
+                    } else if (/^[1-9]$/.test(e.key)) {
+                      const i = Number(e.key) - 1;
+                      if (i < n) {
+                        e.preventDefault();
+                        focusItem(i);
+                        void choose(vraag, i);
+                      }
+                    }
+                  }}
+                >
                   {vraagOpties(vraag, lang).map((opt, i) => {
                     const active = antwoorden[vraag.id] === i;
                     const isCorrect = fb && fb.correcte_index === i;
@@ -849,10 +892,14 @@ export function AcademyQuiz({ slug }: { slug: string }) {
                       <li key={i}>
                         <button
                           type="button"
+                          role="radio"
+                          aria-checked={active}
+                          tabIndex={fb ? 0 : i === focusOptie ? 0 : -1}
+                          onFocus={() => setFocusOptie(i)}
                           disabled={Boolean(fb) || checking}
                           onClick={() => void choose(vraag, i)}
                           className={
-                            "flex w-full min-h-[56px] items-start gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition sm:px-5 sm:py-4 " +
+                            "flex w-full min-h-[56px] items-start gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-terracotta)] focus-visible:ring-offset-2 sm:px-5 sm:py-4 " +
                             (isCorrect
                               ? "border-[color:var(--color-quiz-ok)] bg-[color:var(--color-quiz-ok)]/12 text-foreground"
                               : isWrongPick
@@ -892,6 +939,11 @@ export function AcademyQuiz({ slug }: { slug: string }) {
                   <Loader2 className="mr-2 size-4 animate-spin" /> …
                 </p>
               )}
+
+              {/* Beleefde meldregio: schermlezers horen juist/fout met uitleg. */}
+              <p aria-live="polite" role="status" className="sr-only">
+                {fb ? `${fb.juist ? t("aca.correct") : t("aca.wrong")}. ${feedbackTekst ?? ""}` : ""}
+              </p>
 
               {fb && (
                 <div
@@ -1104,14 +1156,6 @@ export function AcademyQuiz({ slug }: { slug: string }) {
                   ) : (
                     t("aca.request")
                   )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="min-h-[48px] w-full rounded-full px-6 sm:w-auto"
-                  onClick={() => void handleShare()}
-                >
-                  <Share2 className="mr-2 size-4" />
-                  {t("share.cta")}
                 </Button>
               </div>
             </div>
