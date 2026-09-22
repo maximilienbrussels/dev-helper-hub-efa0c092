@@ -166,7 +166,7 @@ function VerifieerCodePage() {
   return (
     <>
       <NavHeader />
-      <main className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center px-4 py-16">
+      <main className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center px-4 py-16">
       <MLogo variant="brand" className="h-12 w-auto" />
 
       {loading && (
@@ -180,6 +180,33 @@ function VerifieerCodePage() {
           <p className="inline-flex items-center gap-2 rounded-full bg-[color:var(--surface-forest)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[color:var(--color-cream)]">
             <BadgeCheck className="h-4 w-4" /> Officieel &amp; geverifieerd diploma
           </p>
+
+          {/* Gescand via de officiële QR: dan tonen we het certificaat zelf. */}
+          {data.ondertekend ? (
+            <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-[color:var(--color-sage)]/60">
+              <CertificateFront
+                academy={data.slug ? { slug: data.slug, badge_icon: data.badge_icon } : null}
+                academyLabel={data.academy ?? ""}
+                naam={data.naam}
+                score={data.score ?? ""}
+                datum={datum}
+                code={data.code}
+                volgnummer={data.volgnummer}
+                qrUrl={certVerifyCodeUrl(data.code, sig)}
+                certLang={lang}
+              />
+            </div>
+          ) : (
+            <p className="mt-6 inline-flex items-start gap-2 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+              <ShieldQuestion className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>
+                Dit nummer is manueel ingevoerd. De gegevens hieronder komen uit onze databank en
+                zijn geldig; het certificaatbeeld verschijnt enkel na het scannen van de officiële
+                QR-code op het certificaat.
+              </span>
+            </p>
+          )}
+
 
           <h1 className="mt-6 font-serif text-3xl italic text-[color:var(--ink-forest)]">
             {data.naam ?? "—"}
