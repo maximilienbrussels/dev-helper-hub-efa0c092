@@ -17,13 +17,22 @@ export type VerifyResult =
       score: string | null;
       behaald_op: string;
       academy: string | null;
+      /** Publieke gegevens om het certificaatbeeld te kunnen tonen. */
+      slug: string | null;
+      volgnummer: number;
+      badge_icon: string | null;
     };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SELECT = "volgnummer, volledige_naam, behaald_op, score, academies(slug, diersoort_naam)";
+const SELECT =
+  "volgnummer, volledige_naam, behaald_op, score, academies(slug, diersoort_naam, badge_icon)";
 
 function shape(row: Record<string, unknown>): VerifyResult {
-  const academy = row["academies"] as { slug?: string; diersoort_naam?: string } | null;
+  const academy = row["academies"] as {
+    slug?: string;
+    diersoort_naam?: string;
+    badge_icon?: string | null;
+  } | null;
   return {
     valid: true,
     code: certCode(academy?.slug, row["behaald_op"] as string, row["volgnummer"] as number),
@@ -31,6 +40,9 @@ function shape(row: Record<string, unknown>): VerifyResult {
     score: (row["score"] as string | null) ?? null,
     behaald_op: row["behaald_op"] as string,
     academy: academy?.diersoort_naam ?? null,
+    slug: academy?.slug ?? null,
+    volgnummer: row["volgnummer"] as number,
+    badge_icon: academy?.badge_icon ?? null,
   };
 }
 
