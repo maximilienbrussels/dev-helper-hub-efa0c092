@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { startExamen, submitExamen, checkAntwoord } from "@/lib/academy.functions";
+import { startPoging, logAntwoord, finishPoging } from "@/lib/academy-stats.functions";
 import {
   type Doelgroep,
   doelgroepCopy,
@@ -190,6 +191,11 @@ export function AcademyQuiz({ slug }: { slug: string }) {
   const startFn = useServerFn(startExamen);
   const submitFn = useServerFn(submitExamen);
   const checkFn = useServerFn(checkAntwoord);
+  const startPogingFn = useServerFn(startPoging);
+  const logAntwoordFn = useServerFn(logAntwoord);
+  const finishPogingFn = useServerFn(finishPoging);
+  /** Anoniem poging-id voor de statistieken; nooit blokkerend. */
+  const pogingRef = useRef<string | null>(null);
   const saveProfile = useServerFn(updateMyProfile);
 
   const [academy, setAcademy] = useState<Academy | null>(null);
@@ -261,10 +267,25 @@ export function AcademyQuiz({ slug }: { slug: string }) {
         setModuleIdx(0);
         setQIdx(0);
         setFinished(false);
+        pogingRef.current = null;
+        void startPogingFn({
+          data: {
+            academy_id: (res.academy as Academy).id,
+            doelgroep,
+            taal: lang as "nl" | "fr" | "en",
+            vragen_totaal: (res.vragen as Vraag[]).length,
+          },
+        })
+          .then((r) => {
+            pogingRef.current = r.poging_id;
+          })
+          .catch(() => {
+            /* meten mag het examen nooit hinderen */
+          });
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : t("aca.loadError")))
       .finally(() => setLoading(false));
-  }, [slug, doelgroep, lang, startFn, t]);
+  }, [slug, doelgroep, lang, startFn, startPogingFn, t]);
 
   useEffect(() => {
     void load();
@@ -371,6 +392,7 @@ export function AcademyQuiz({ slug }: { slug: string }) {
       });
     },
     onSuccess: (res) => {
+      meldEinde(res.geslaagd ? "geslaagd" : "gezakt");
       if (res.geslaagd) {
         toast.success(formatT(t("aca.passed"), { n: res.certificaat.volgnummer }));
         confettiRegen();
@@ -403,6 +425,38 @@ export function AcademyQuiz({ slug }: { slug: string }) {
     }
   }
 
+  /** Telt één beantwoorde vraag mee in de anonieme statistieken. */
+  const meldAntwoord = useCallback(
+    (vraag: Vraag, juist: boolean) => {
+      const poging = pogingRef.current;
+      if (!poging || !doelgroep) return;
+      void logAntwoordFn({
+        data: {
+          poging_id: poging,
+          vraag_id: vraag.id,
+          module: vraag.module ?? 1,
+          juist,
+          doelgroep,
+          taal: lang as "nl" | "fr" | "en",
+        },
+      }).catch(() => {
+        /* niet blokkerend */
+      });
+    },
+    [doelgroep, lang, logAntwoordFn],
+  );
+
+  /** Sluit de anonieme poging af. */
+  const meldEinde = useCallback(
+    (status: "geslaagd" | "gezakt") => {
+      const poging = pogingRef.current;
+      if (!poging) return;
+      pogingRef.current = null;
+      void finishPogingFn({ data: { poging_id: poging, status } }).catch(() => {});
+    },
+    [finishPogingFn],
+  );
+
   /** Viert een juist antwoord: uitbundig voor kinderen, ingetogen voor 16+. */
   function vier(juist: boolean) {
     if (!juist) return;
@@ -422,6 +476,7 @@ export function AcademyQuiz({ slug }: { slug: string }) {
         data: { vraag_id: vraag.id, sessie, gekozen_index: index },
       })) as Feedback;
       setFeedback((f) => ({ ...f, [vraag.id]: res }));
+      meldAntwoord(vraag, res.juist);
       vier(res.juist);
     } catch {
       setFeedback((f) => ({
@@ -445,6 +500,7 @@ export function AcademyQuiz({ slug }: { slug: string }) {
         data: { vraag_id: vraag.id, sessie, getal: waarde },
       })) as Feedback;
       setFeedback((f) => ({ ...f, [vraag.id]: res }));
+      meldAntwoord(vraag, res.juist);
       vier(res.juist);
     } catch {
       setFeedback((f) => ({
