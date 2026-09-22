@@ -27,10 +27,15 @@ export function certVerifyUrl(token: string | null | undefined, fallbackId: stri
 /**
  * Absolute verificatie-URL op basis van de leesbare certificaatcode.
  * Dit is wat de QR-code op het A4-certificaat bevat:
- * https://maximilien.brussels/verifieer/KNJ-2026-0001
+ * https://maximilien.brussels/verifieer/KNJ-2026-0001?s=<handtekening>
+ *
+ * De handtekening is een HMAC die enkel de server kan maken; zonder een
+ * geldige handtekening toont de verificatiepagina wel de gegevens, maar niet
+ * het certificaatbeeld zelf.
  */
-export function certVerifyCodeUrl(code: string) {
-  return `${CERT_VERIFY_BASE}/${encodeURIComponent(String(code).replace(/^#/, ""))}`;
+export function certVerifyCodeUrl(code: string, sig?: string | null) {
+  const base = `${CERT_VERIFY_BASE}/${encodeURIComponent(String(code).replace(/^#/, ""))}`;
+  return sig ? `${base}?s=${encodeURIComponent(sig)}` : base;
 }
 
 /** Unieke code-prefix per academie: #KIP-2026-0001, #HND-2026-0001, ... */
