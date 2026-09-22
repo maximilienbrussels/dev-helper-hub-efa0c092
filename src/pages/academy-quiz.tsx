@@ -548,6 +548,8 @@ export function AcademyQuiz({ slug }: { slug: string }) {
       return;
     }
     setFinished(true);
+    // Kinderen leveren niets in bij de server: hier sluiten we hun poging af.
+    if (isKids) meldEinde(alleModulesBehaald ? "geslaagd" : "gezakt");
   }
 
   function exitQuiz() {
