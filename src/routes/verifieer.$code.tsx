@@ -122,7 +122,7 @@ function VerifieerCodePage() {
       navigate({
         to: "/verifieer/$code",
         params: { code: hit.code },
-        search: hit.sig ? { s: hit.sig } : {},
+        search: { s: hit.sig },
       });
     },
     [navigate],
@@ -131,7 +131,7 @@ function VerifieerCodePage() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     const next = value.trim().replace(/^#/, "");
-    if (next.length >= 6) navigate({ to: "/verifieer/$code", params: { code: next } });
+    if (next.length >= 6) navigate({ to: "/verifieer/$code", params: { code: next }, search: { s: undefined } });
   };
 
   const onCopyLink = async () => {
@@ -291,6 +291,7 @@ function VerifieerCodePage() {
                       navigate({
                         to: "/verifieer/$code",
                         params: { code: clean.replace(parsedPrefix, prefix) },
+                        search: { s: undefined },
                       })
                     }
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-mono uppercase tracking-widest hover:border-[color:var(--color-terracotta)]"
