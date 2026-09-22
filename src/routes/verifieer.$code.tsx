@@ -229,7 +229,7 @@ function VerifieerCodePage() {
 
           <div className="mt-8 flex flex-wrap items-center gap-6 border-t border-[color:var(--color-sage)]/50 pt-6">
             <span className="rounded-xl bg-[#FAF7F2] p-2 ring-1 ring-[color:var(--color-sage)]/60">
-              <CertificateQR value={certVerifyCodeUrl(data.code)} size={88} />
+              <CertificateQR value={certVerifyCodeUrl(data.code, sig)} size={64} />
             </span>
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -250,6 +250,20 @@ function VerifieerCodePage() {
           </div>
         </article>
       )}
+
+      {!loading && (
+        <div className="mt-6 w-full">
+          <button
+            type="button"
+            onClick={() => setScanOpen((o) => !o)}
+            className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-border bg-background px-7 text-sm font-medium text-foreground transition-colors hover:border-[color:var(--color-terracotta)]"
+          >
+            <Camera className="h-4 w-4" /> {scanOpen ? "Scanner sluiten" : "Scan QR-code"}
+          </button>
+          {scanOpen && <QrScanner onResult={onScan} onClose={() => setScanOpen(false)} />}
+        </div>
+      )}
+
 
       {notFound && (
         <section className="mt-8 w-full rounded-3xl border border-border bg-card p-8 text-center">
