@@ -6,7 +6,9 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { verifyCertificaat, verifyCertificaatByCode } from "@/lib/verify.functions";
 import { useT, localeFor, formatT } from "@/lib/i18n";
-import { BadgeCheck, Copy, FileText, Loader2, Search, ShieldAlert } from "lucide-react";
+import { BadgeCheck, Camera, Copy, FileText, Loader2, Search, ShieldAlert } from "lucide-react";
+import { QrScanner } from "@/components/verify/QrScanner";
+import { parseScanned } from "@/routes/verifieer.$code";
 import { MLogo } from "@/components/MLogo";
 import { NavHeader } from "@/components/NavHeader";
 import { parseCertCode } from "@/lib/cert-code";
@@ -52,6 +54,7 @@ function VerifieerPage() {
   const byToken = useServerFn(verifyCertificaat);
   const byCode = useServerFn(verifyCertificaatByCode);
   const [value, setValue] = useState(id ?? "");
+  const [scanOpen, setScanOpen] = useState(false);
 
   // Hash-routing: /verifieer#MAX-2026-9K2P4 of maximilien.site/#KNJ-2026-0001
   useEffect(() => {
@@ -86,6 +89,21 @@ function VerifieerPage() {
     navigate({ search: { id: value.trim() } });
   };
 
+  /** Gescande QR meteen doorsturen naar de officiële controlepagina. */
+  const onScan = (raw: string) => {
+    const hit = parseScanned(raw);
+    if (!hit) {
+      toast.error("Deze QR-code hoort niet bij een certificaat.");
+      return;
+    }
+    setScanOpen(false);
+    void navigate({
+      to: "/verifieer/$code",
+      params: { code: hit.code },
+      search: { s: hit.sig },
+    });
+  };
+
   const onCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(verifyUrl);
@@ -118,6 +136,17 @@ function VerifieerPage() {
       <p className="mt-3 max-w-md text-center text-sm text-muted-foreground">
         {t("verify.lookupHint")}
       </p>
+
+      <div className="mt-6 w-full max-w-md">
+        <button
+          type="button"
+          onClick={() => setScanOpen((o) => !o)}
+          className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-border bg-background px-7 text-sm font-medium text-foreground transition-colors hover:border-[color:var(--color-terracotta)]"
+        >
+          <Camera className="h-4 w-4" /> {scanOpen ? "Scanner sluiten" : "Scan QR-code"}
+        </button>
+        {scanOpen && <QrScanner onResult={onScan} onClose={() => setScanOpen(false)} />}
+      </div>
 
       <form onSubmit={onSubmit} className="mt-8 flex w-full max-w-md items-center gap-2">
         <input
