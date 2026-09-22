@@ -1,14 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
-import { BadgeCheck, Copy, FileText, Loader2, Search, ShieldAlert } from "lucide-react";
+import { useCallback, useState, type FormEvent } from "react";
+import {
+  BadgeCheck,
+  Camera,
+  Copy,
+  FileText,
+  Loader2,
+  Search,
+  ShieldAlert,
+  ShieldQuestion,
+} from "lucide-react";
 import { toast } from "sonner";
 import { verifyCertificaat, verifyCertificaatByCode } from "@/lib/verify.functions";
 import { useT, localeFor } from "@/lib/i18n";
 import { MLogo } from "@/components/MLogo";
 import { NavHeader } from "@/components/NavHeader";
 import { CertificateQR } from "@/components/CertificateQR";
+import { CertificateFront } from "@/components/academy/CertificateFront";
+import { QrScanner } from "@/components/verify/QrScanner";
 import { certVerifyCodeUrl } from "@/lib/academy-cert";
 import { parseCertCode } from "@/lib/cert-code";
 import { closestCertPrefixes, EXAMPLE_CERT_CODE } from "@/lib/verify-prefixes";
@@ -16,6 +27,23 @@ import { verifyReasonMessage } from "@/lib/verify-messages";
 import { downloadVerifiedCertificatePdf } from "@/lib/verify-pdf";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Leest code + handtekening uit een gescande QR-inhoud (URL of los nummer). */
+export function parseScanned(raw: string): { code: string; sig?: string } | null {
+  const text = String(raw ?? "").trim();
+  if (!text) return null;
+  try {
+    const url = new URL(text);
+    const last = url.pathname.split("/").filter(Boolean).pop() ?? "";
+    const code = decodeURIComponent(last).replace(/^#/, "");
+    const sig = url.searchParams.get("s") ?? url.searchParams.get("id") ?? undefined;
+    if (code.length >= 6) return { code, sig: sig ?? undefined };
+    return null;
+  } catch {
+    const code = text.replace(/^#/, "");
+    return code.length >= 6 ? { code } : null;
+  }
+}
 
 /**
  * Officieel verificatiescherm dat achter elke QR-code op het A4-certificaat
