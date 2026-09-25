@@ -1,3 +1,4 @@
+import { optieToets } from "@/lib/academy-quiz-keys";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -865,20 +866,11 @@ export function AcademyQuiz({ slug }: { slug: string }) {
                       const el = optiesRef.current?.querySelectorAll("button")[i];
                       (el as HTMLButtonElement | undefined)?.focus();
                     };
-                    if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-                      e.preventDefault();
-                      focusItem((focusOptie + 1) % n);
-                    } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-                      e.preventDefault();
-                      focusItem((focusOptie - 1 + n) % n);
-                    } else if (/^[1-9]$/.test(e.key)) {
-                      const i = Number(e.key) - 1;
-                      if (i < n) {
-                        e.preventDefault();
-                        focusItem(i);
-                        void choose(vraag, i);
-                      }
-                    }
+                    const r = optieToets(e.key, focusOptie, n);
+                    if (!r) return;
+                    e.preventDefault();
+                    focusItem(r.focus);
+                    if (r.kies) void choose(vraag, r.focus);
                   }}
                 >
                   {vraagOpties(vraag, lang).map((opt, i) => {
