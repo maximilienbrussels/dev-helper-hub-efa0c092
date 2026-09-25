@@ -10,3 +10,6 @@
 - [x] Ondertekende QR, verificatie met certificaatbeeld, QR-scanner
 - [x] Eigen sleutel CERT_QR_SECRET ingesteld
 - [x] Rustige variant bij beperkte beweging (confetti uit, animaties uit, statische stempel)
+- [x] Quizkleuren op AA-contrast gebracht (getest)
+- [x] Tests: resultaten-aggregatie en toetsenbordbediening
+- [ ] Volledige proefrit quiz→certificaat→QR in 3 talen (wacht op testaccount/echte inzending door gebruiker)
