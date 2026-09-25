@@ -19,15 +19,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { getAcademyStats, type AcademyStatRow } from "@/lib/academy-stats.functions";
 import { usePortal } from "@/lib/portal-store";
-
-type Groep = "academy" | "doelgroep" | "taal";
-
-const TAAL_LABEL: Record<string, string> = { nl: "Nederlands", fr: "Frans", en: "Engels" };
-const DOELGROEP_LABEL: Record<string, string> = { kids: "Kinderen (<16)", "16plus": "16+" };
-
-function pct(deel: number, totaal: number) {
-  return totaal > 0 ? Math.round((deel / totaal) * 100) : 0;
-}
+import { DOELGROEP_LABEL, TAAL_LABEL, groepeerStats, pct, type Groep } from "@/lib/academy-stats-aggregate";
 
 export function ResultsPage() {
   const { lang } = usePortal();
@@ -51,41 +43,7 @@ export function ResultsPage() {
     );
   }, [data, taal, doelgroep]);
 
-  const gegroepeerd = useMemo(() => {
-    const map = new Map<
-      string,
-      { label: string; pogingen: number; geslaagd: number; gezakt: number; bezig: number; scoreSom: number; scoreN: number; uitvalSom: number; uitvalN: number }
-    >();
-    for (const r of rijen) {
-      const key =
-        groep === "academy" ? r.academy : groep === "taal" ? TAAL_LABEL[r.taal] ?? r.taal : DOELGROEP_LABEL[r.doelgroep] ?? r.doelgroep;
-      const cur =
-        map.get(key) ??
-        { label: key, pogingen: 0, geslaagd: 0, gezakt: 0, bezig: 0, scoreSom: 0, scoreN: 0, uitvalSom: 0, uitvalN: 0 };
-      cur.pogingen += r.pogingen;
-      cur.geslaagd += r.geslaagd;
-      cur.gezakt += r.gezakt;
-      cur.bezig += r.bezig;
-      if (r.gem_score !== null) {
-        cur.scoreSom += r.gem_score * r.pogingen;
-        cur.scoreN += r.pogingen;
-      }
-      if (r.uitval_module !== null) {
-        cur.uitvalSom += r.uitval_module * (r.gezakt + r.bezig);
-        cur.uitvalN += r.gezakt + r.bezig;
-      }
-      map.set(key, cur);
-    }
-    return [...map.values()]
-      .map((g) => ({
-        ...g,
-        slaagPct: pct(g.geslaagd, g.geslaagd + g.gezakt),
-        uitvalPct: pct(g.bezig, g.pogingen),
-        gemScore: g.scoreN ? Math.round(g.scoreSom / g.scoreN) : null,
-        gemUitvalModule: g.uitvalN ? (g.uitvalSom / g.uitvalN).toFixed(1) : "—",
-      }))
-      .sort((a, b) => b.pogingen - a.pogingen);
-  }, [rijen, groep]);
+  const gegroepeerd = useMemo(() => groepeerStats(rijen, groep), [rijen, groep]);
 
   const totalen = useMemo(() => {
     const p = rijen.reduce((s, r) => s + r.pogingen, 0);
@@ -154,7 +112,7 @@ export function ResultsPage() {
                     {gegroepeerd.map((g) => (
                       <Cell
                         key={g.label}
-                        fill={g.slaagPct >= 70 ? "var(--color-quiz-ok, #2f6b3f)" : g.slaagPct >= 40 ? "#b8860b" : "var(--color-quiz-bad, #a02c2c)"}
+                        fill={g.slaagPct >= 70 ? "var(--color-quiz-ok, #2f6b3f)" : g.slaagPct >= 40 ? "#8a6508" : "var(--color-quiz-bad, #a02c2c)"}
                       />
                     ))}
                   </Bar>
