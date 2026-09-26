@@ -934,7 +934,9 @@ export function AcademyQuiz({ slug }: { slug: string }) {
 
               {/* Beleefde meldregio: schermlezers horen juist/fout met uitleg. */}
               <p aria-live="polite" role="status" className="sr-only">
-                {fb ? `${fb.juist ? t("aca.correct") : t("aca.wrong")}. ${feedbackTekst ?? ""}` : ""}
+                {fb
+                  ? `${(fb.juist ? t("aca.correct") : t("aca.wrong")).replace(/[.!?]*$/, (m) => m || ".")} ${feedbackTekst ?? ""}`.trim()
+                  : ""}
               </p>
 
               {fb && (
