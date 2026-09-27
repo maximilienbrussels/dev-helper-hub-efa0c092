@@ -1,0 +1,332 @@
+/**
+ * Tweestapsverificatie (2FA): status, instellen en controleren.
+ * Een geslaagde tweede stap levert een nieuwe sessietoken op met `mfa: true`.
+ */
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireAuth } from "@/lib/auth-middleware";
+
+type Ctx = { userId: string; claims: Record<string, unknown> };
+
+async function mfaSession(userId: string): Promise<string> {
+  const auth = await import("./local-auth.server");
+  const user = await auth.findUserById(userId);
+  if (!user) throw new Error("Je account werd niet gevonden.");
+  return auth.signSession(user, { mfa: true });
+}
+
+/** Instellen van een extra methode mag enkel als er nog geen is, of na een geslaagde tweede stap. */
+async function assertMayEnroll(ctx: Ctx) {
+  const mfa = await import("./mfa.server");
+  if (ctx.claims["mfa"] === true) return;
+  if (await mfa.hasAnyFactor(ctx.userId)) {
+    throw new Error("Bevestig eerst je identiteit met je huidige tweede stap.");
+  }
+}
+
+async function rate(bucket: string, id: string, max: number, win: number) {
+  const { checkRateLimit } = await import("./rate-limit.server");
+  if (!(await checkRateLimit(bucket, id, max, win))) {
+    throw new Error("Even geduld — te veel pogingen. Probeer het over enkele minuten opnieuw.");
+  }
+}
+
+async function isStaff(ctx: Ctx): Promise<boolean> {
+  const { resolveAccessRaw } = await import("./permission-core.server");
+  const a = await resolveAccessRaw({ userId: ctx.userId, claims: ctx.claims });
+  if (a.fullAccess || a.roles.length > 0) return true;
+  const { resolveTeamAccessRaw } = await import("./permission-core.server");
+  return (await resolveTeamAccessRaw({ userId: ctx.userId, claims: ctx.claims })).allowed;
+}
+
+export type MfaStatus = {
+  staff: boolean;
+  required: boolean;
+  verified: boolean;
+  methods: { passkey: boolean; totp: boolean; phone: boolean };
+  phone: string | null;
+  recoveryLeft: number;
+};
+
+export const getMfaStatus = createServerFn({ method: "GET" })
+  .middleware([requireAuth])
+  .handler(async ({ context }): Promise<MfaStatus> => {
+    const ctx = context as unknown as Ctx;
+    const mfa = await import("./mfa.server");
+    const [methods, row, staff] = await Promise.all([
+      mfa.methodsFor(ctx.userId),
+      mfa.getMfaRow(ctx.userId).catch(() => null),
+      isStaff(ctx).catch(() => false),
+    ]);
+    return {
+      staff,
+      required: staff,
+      verified: ctx.claims["mfa"] === true,
+      methods,
+      phone: row?.phone_verified_at ? row.phone : null,
+      recoveryLeft: row?.recovery_hashes?.length ?? 0,
+    };
+  });
+
+/* ------------------------------ authenticator ----------------------------- */
+
+export const startTotpSetup = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .handler(async ({ context }) => {
+    const ctx = context as unknown as Ctx;
+    await assertMayEnroll(ctx);
+    const { randomBase32Secret, otpauthUri } = await import("./mfa-core");
+    const mfa = await import("./mfa.server");
+    const secret = randomBase32Secret();
+    await mfa.upsertMfa(ctx.userId, { totp_pending_enc: await mfa.encrypt(secret) });
+    return { secret, uri: otpauthUri(secret, String(ctx.claims["email"] ?? "account")) };
+  });
+
+function newRecoveryCodes(): string[] {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 8 }, () => {
+    const buf = crypto.getRandomValues(new Uint8Array(10));
+    const s = Array.from(buf, (b) => alphabet[b % alphabet.length]).join("");
+    return `${s.slice(0, 5)}-${s.slice(5)}`;
+  });
+}
+
+export const confirmTotpSetup = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) => z.object({ code: z.string().trim().min(6).max(10) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    await assertMayEnroll(ctx);
+    await rate("mfa-totp", ctx.userId, 10, 600);
+    const mfa = await import("./mfa.server");
+    const { verifyTotp } = await import("./mfa-core");
+    const row = await mfa.getMfaRow(ctx.userId);
+    const secret = row?.totp_pending_enc ? await mfa.decrypt(row.totp_pending_enc) : null;
+    if (!secret) throw new Error("Start het instellen opnieuw.");
+    if (!(await verifyTotp(secret, data.code))) throw new Error("Die code klopt niet. Probeer de nieuwste code.");
+    const codes = newRecoveryCodes();
+    await mfa.upsertMfa(ctx.userId, {
+      totp_secret_enc: row!.totp_pending_enc,
+      totp_pending_enc: null,
+      totp_enabled_at: new Date().toISOString(),
+      recovery_hashes: await Promise.all(codes.map((c) => mfa.hashCode(`rec:${c}`))),
+    });
+    return { token: await mfaSession(ctx.userId), recoveryCodes: codes };
+  });
+
+export const verifyTotpCode = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) => z.object({ code: z.string().trim().min(6).max(12) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    await rate("mfa-verify", ctx.userId, 10, 600);
+    const mfa = await import("./mfa.server");
+    const { verifyTotp } = await import("./mfa-core");
+    const row = await mfa.getMfaRow(ctx.userId);
+    const code = data.code.toUpperCase();
+    if (row?.totp_secret_enc && /^\d{6}$/.test(code.replace(/\s/g, ""))) {
+      const secret = await mfa.decrypt(row.totp_secret_enc);
+      if (secret && (await verifyTotp(secret, code))) return { token: await mfaSession(ctx.userId) };
+    }
+    // Herstelcode (eenmalig)
+    if (row && /^[A-Z0-9]{5}-?[A-Z0-9]{5}$/.test(code)) {
+      const norm = code.includes("-") ? code : `${code.slice(0, 5)}-${code.slice(5)}`;
+      const h = await mfa.hashCode(`rec:${norm}`);
+      if (row.recovery_hashes.includes(h)) {
+        await mfa.upsertMfa(ctx.userId, { recovery_hashes: row.recovery_hashes.filter((x) => x !== h) });
+        return { token: await mfaSession(ctx.userId) };
+      }
+    }
+    throw new Error("Die code klopt niet.");
+  });
+
+/* ---------------------------------- sms ---------------------------------- */
+
+export const sendSmsCode = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) =>
+    z.object({ phone: z.string().trim().max(30).optional(), purpose: z.enum(["setup", "login"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const mfa = await import("./mfa.server");
+    const core = await import("./mfa-core");
+    let phone: string | null;
+    if (data.purpose === "setup") {
+      await assertMayEnroll(ctx);
+      phone = core.normalizeBelgianMobile(data.phone ?? "");
+      if (!phone) throw new Error("Vul een geldig Belgisch gsm-nummer in (bv. 0470 12 34 56).");
+    } else {
+      const row = await mfa.getMfaRow(ctx.userId);
+      if (!row?.phone_verified_at || row.phone_method !== "sms" || !row.phone) {
+        throw new Error("Er is geen gsm-nummer gekoppeld.");
+      }
+      phone = row.phone;
+    }
+    await rate("mfa-sms", ctx.userId, 5, 3600);
+    const code = core.randomSixDigits();
+    await mfa.createCode({ userId: ctx.userId, kind: "sms", purpose: data.purpose, code, phone, country: "BE", ttlSeconds: 600 });
+    await mfa.sendSms(phone, `Uw verificatiecode is: ${code}`);
+    return { sentTo: `${phone.slice(0, 5)} •• •• ${phone.slice(-2)}` };
+  });
+
+export const verifySmsCode = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) => z.object({ code: z.string().trim().regex(/^\d{6}$/) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const mfa = await import("./mfa.server");
+    const row = await mfa.latestPendingSms(ctx.userId);
+    if (!row || new Date(row.expires_at).getTime() < Date.now()) {
+      throw new Error("Deze code is verlopen. Vraag een nieuwe aan.");
+    }
+    if (row.attempts >= 5) {
+      await mfa.setCodeStatus(row.id, "used");
+      throw new Error("Te veel foute pogingen. Vraag een nieuwe code aan.");
+    }
+    if ((await mfa.hashCode(data.code)) !== row.code_hash) {
+      await mfa.bumpAttempts(row.id);
+      throw new Error("Die code klopt niet.");
+    }
+    await mfa.setCodeStatus(row.id, "used");
+    if (row.purpose === "setup") {
+      await assertMayEnroll(ctx);
+      await mfa.upsertMfa(ctx.userId, {
+        phone: row.phone,
+        phone_country: "BE",
+        phone_method: "sms",
+        phone_verified_at: new Date().toISOString(),
+      });
+    }
+    return { token: await mfaSession(ctx.userId) };
+  });
+
+/* ----------------------- buitenland: via berichtenapp ---------------------- */
+
+export const startIntlVerification = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) =>
+    z.object({ country: z.string().trim().min(2).max(4), purpose: z.enum(["setup", "login"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const mfa = await import("./mfa.server");
+    if (data.purpose === "setup") await assertMayEnroll(ctx);
+    else {
+      const row = await mfa.getMfaRow(ctx.userId);
+      if (!row?.phone_verified_at || row.phone_method !== "intl") throw new Error("Deze methode is niet ingesteld.");
+    }
+    await rate("mfa-intl", ctx.userId, 6, 3600);
+    const { randomSixDigits } = await import("./mfa-core");
+    const code = randomSixDigits();
+    const id = await mfa.createCode({
+      userId: ctx.userId,
+      kind: "intl",
+      purpose: data.purpose,
+      code,
+      country: data.country.toUpperCase(),
+      ttlSeconds: 24 * 3600,
+    });
+    return { requestId: id, code };
+  });
+
+export const checkIntlVerification = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) => z.object({ requestId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const mfa = await import("./mfa.server");
+    const row = await mfa.getCode(data.requestId, ctx.userId);
+    if (!row) throw new Error("Aanvraag niet gevonden.");
+    if (row.status === "rejected") return { status: "rejected" as const, token: null };
+    if (row.status !== "approved") {
+      const expired = new Date(row.expires_at).getTime() < Date.now();
+      return { status: expired ? ("expired" as const) : ("pending" as const), token: null };
+    }
+    await mfa.setCodeStatus(row.id, "used");
+    if (row.purpose === "setup") {
+      await mfa.upsertMfa(ctx.userId, {
+        phone: null,
+        phone_country: row.country,
+        phone_method: "intl",
+        phone_verified_at: new Date().toISOString(),
+      });
+    }
+    return { status: "approved" as const, token: await mfaSession(ctx.userId) };
+  });
+
+/* -------------------------- beheer: goedkeuren --------------------------- */
+
+async function assertApprover(ctx: Ctx) {
+  const { resolveAccess } = await import("./permission-core.server");
+  const a = await resolveAccess({ userId: ctx.userId, claims: ctx.claims });
+  if (!a.fullAccess) throw new Error("Alleen beheerders kunnen verificaties goedkeuren.");
+  return a.email;
+}
+
+export type IntlRequest = {
+  id: string;
+  email: string;
+  name: string | null;
+  country: string | null;
+  code: string | null;
+  purpose: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+  decided_by: string | null;
+};
+
+export const listIntlRequests = createServerFn({ method: "GET" })
+  .middleware([requireAuth])
+  .handler(async ({ context }): Promise<IntlRequest[]> => {
+    await assertApprover(context as unknown as Ctx);
+    const { ensureMfaSchema } = await import("./mfa.server");
+    await ensureMfaSchema();
+    const { db } = await import("./neon.server");
+    return (await db()`
+      select c.id, u.email, u.name, c.country,
+        case when c.status = 'pending' then c.code_plain else null end as code,
+        c.purpose, c.status, c.created_at, c.expires_at, c.decided_by
+      from public.app_mfa_codes c join public.app_users u on u.id = c.user_id
+      where c.kind = 'intl' and c.created_at > now() - interval '14 days'
+      order by (c.status = 'pending') desc, c.created_at desc limit 100`) as IntlRequest[];
+  });
+
+export const decideIntlRequest = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) =>
+    z.object({ id: z.string().uuid(), decision: z.enum(["approved", "rejected"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const email = await assertApprover(context as unknown as Ctx);
+    const { db } = await import("./neon.server");
+    const rows = (await db()`
+      update public.app_mfa_codes
+      set status = ${data.decision}, decided_by = ${email}, decided_at = now(), code_plain = null
+      where id = ${data.id}::uuid and kind = 'intl' and status = 'pending' and expires_at > now()
+      returning id`) as { id: string }[];
+    if (!rows.length) throw new Error("Deze aanvraag is al behandeld of verlopen.");
+    return { ok: true as const };
+  });
+
+/** Methode verwijderen (enkel na tweede stap, nooit de laatste voor medewerkers). */
+export const removeMfaMethod = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) => z.object({ method: z.enum(["totp", "phone"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    if (ctx.claims["mfa"] !== true) throw new Error("Bevestig eerst je tweede stap.");
+    const mfa = await import("./mfa.server");
+    const m = await mfa.methodsFor(ctx.userId);
+    const left = [m.passkey, m.totp && data.method !== "totp", m.phone && data.method !== "phone"].filter(Boolean).length;
+    if (left === 0 && (await isStaff(ctx))) {
+      throw new Error("Medewerkers moeten minstens één tweede stap behouden.");
+    }
+    if (data.method === "totp") {
+      await mfa.upsertMfa(ctx.userId, { totp_secret_enc: null, totp_enabled_at: null, recovery_hashes: [] });
+    } else {
+      await mfa.upsertMfa(ctx.userId, { phone: null, phone_verified_at: null, phone_method: null, phone_country: null });
+    }
+    return { ok: true as const };
+  });
