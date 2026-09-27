@@ -341,10 +341,13 @@ function AuthPage() {
       const { startAuthentication } = await import("@simplewebauthn/browser");
       const options = await startPasskeyLogin({ data: { email: email || undefined } });
       const response = await startAuthentication({ optionsJSON: options });
-      const { email: verifiedEmail } = await finishPasskeyLogin({
+      const result = await finishPasskeyLogin({
         data: { email: email || undefined, response },
       });
-      toast.success(`Passkey bevestigd — we stuurden een inloglink naar ${verifiedEmail}.`);
+      toast.success("Passkey bevestigd — je wordt aangemeld.");
+      window.location.assign(
+        `/inloglink?token=${encodeURIComponent(result.token)}&next=${encodeURIComponent("/vandaag")}`,
+      );
     } catch (err) {
       // Annuleren (NotAllowedError) reset enkel de knop; echte fouten krijgen
       // een begrijpelijke melding (bv. SecurityError → HTTPS vereist).
