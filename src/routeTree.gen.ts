@@ -16,6 +16,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdoptieRouteImport } from './routes/adoptie'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BeveiligingRouteImport } from './routes/beveiliging'
 import { Route as BevestigenRouteImport } from './routes/bevestigen'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CookiesRouteImport } from './routes/cookies'
@@ -188,6 +189,11 @@ const AdoptieRoute = AdoptieRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BeveiligingRoute = BeveiligingRouteImport.update({
+  id: '/beveiliging',
+  path: '/beveiliging',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BevestigenRoute = BevestigenRouteImport.update({
@@ -907,6 +913,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/adoptie': typeof AdoptieRoute
   '/auth': typeof AuthRouteWithChildren
+  '/beveiliging': typeof BeveiligingRoute
   '/bevestigen': typeof BevestigenRoute
   '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
@@ -1052,6 +1059,7 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/adoptie': typeof AdoptieRoute
+  '/beveiliging': typeof BeveiligingRoute
   '/bevestigen': typeof BevestigenRoute
   '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
@@ -1200,6 +1208,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/adoptie': typeof AdoptieRoute
   '/auth': typeof AuthRouteWithChildren
+  '/beveiliging': typeof BeveiligingRoute
   '/bevestigen': typeof BevestigenRoute
   '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
@@ -1349,6 +1358,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/adoptie'
     | '/auth'
+    | '/beveiliging'
     | '/bevestigen'
     | '/contact'
     | '/cookies'
@@ -1494,6 +1504,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/adoptie'
+    | '/beveiliging'
     | '/bevestigen'
     | '/contact'
     | '/cookies'
@@ -1641,6 +1652,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/adoptie'
     | '/auth'
+    | '/beveiliging'
     | '/bevestigen'
     | '/contact'
     | '/cookies'
@@ -1790,6 +1802,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AdoptieRoute: typeof AdoptieRoute
   AuthRoute: typeof AuthRouteWithChildren
+  BeveiligingRoute: typeof BeveiligingRoute
   BevestigenRoute: typeof BevestigenRoute
   ContactRoute: typeof ContactRoute
   CookiesRoute: typeof CookiesRoute
@@ -1955,6 +1968,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/beveiliging': {
+      id: '/beveiliging'
+      path: '/beveiliging'
+      fullPath: '/beveiliging'
+      preLoaderRoute: typeof BeveiligingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bevestigen': {
@@ -3063,6 +3083,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AdoptieRoute: AdoptieRoute,
   AuthRoute: AuthRouteWithChildren,
+  BeveiligingRoute: BeveiligingRoute,
   BevestigenRoute: BevestigenRoute,
   ContactRoute: ContactRoute,
   CookiesRoute: CookiesRoute,
