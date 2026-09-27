@@ -241,20 +241,13 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
     const email = profile?.email;
     if (!email) throw new Error("Geen account gevonden voor deze passkey.");
 
-    // Direct inloggen: we geven een kortlevend handoff-token terug waarmee de
-    // browser meteen de sessie opent — geen e-mail, geen omleiding via OAuth.
+    // Direct inloggen: een passkey is zelf al een sterke tweede factor, dus de
+    // sessie krijgt meteen `mfa: true`.
     const auth = await import("./local-auth.server");
-    const handoff = await auth.mintToken({
-      kind: "magic",
-      email,
-      ttlSeconds: 300,
-      userId: String(stored.user_id),
-    });
-    if (!handoff) {
-      throw new Error("Inloggen via passkey is momenteel niet beschikbaar.");
-    }
-
-    return { email, token: handoff };
+    const user = await auth.findUserById(String(stored.user_id));
+    if (!user) throw new Error("Geen account gevonden voor deze passkey.");
+    const session = await auth.signSession(user, { mfa: true });
+    return { email, token: session, user };
   });
 
 /** Lijst van eigen passkeys, via de RLS-context van de gebruiker. */
