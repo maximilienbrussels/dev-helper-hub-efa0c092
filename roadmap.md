@@ -13,3 +13,10 @@
 - [x] Quizkleuren op AA-contrast gebracht (getest)
 - [x] Tests: resultaten-aggregatie en toetsenbordbediening
 - [x] Volledige proefrit quiz→certificaat→QR in 3 talen (testdata weer opgeruimd)
+- [x] Passkey-inloggen hersteld (challenge-fout, medewerkers werden niet aangemeld)
+- [x] 2FA: verplicht voor medewerkers, optioneel voor bezoekers (passkey, authenticator, sms BE, berichtenapp buitenland) — pagina /beveiliging
+- [ ] Beheerpagina "Verificaties" (serverfuncties listIntlRequests/decideIntlRequest bestaan al, scherm nog bouwen)
+- [ ] Sms-gateway: SMS_GATEWAY_URL + SMS_GATEWAY_TOKEN invullen (wacht op gebruiker)
+- [ ] Messenger-gebruikersnaam (wacht op gebruiker)
+- [ ] Foto-opslag (Scaleway) per beheerscherm nalopen
+- [ ] Deelvoorbeelden en naam Maxilien overal gelijktrekken

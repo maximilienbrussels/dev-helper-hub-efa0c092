@@ -89,6 +89,10 @@ export function PortalRoot({ page, lang }: { page: PortalPage; lang: Lang }) {
         return;
       }
       const access = await checkPortalAccess().catch(() => null);
+      if (access?.mfa) {
+        window.location.assign(`/beveiliging?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
       if (!access?.allowed) {
         void navigate({ to: "/auth", replace: true });
         return;

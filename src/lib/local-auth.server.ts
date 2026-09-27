@@ -219,11 +219,12 @@ export async function markEmailVerified(userId: string): Promise<void> {
 /* ------------------------------- sessies -------------------------------- */
 
 /** Ondertekent een sessie-JWT (HS256). */
-export async function signSession(user: AppUser): Promise<string> {
+export async function signSession(user: AppUser, extra?: { mfa?: boolean }): Promise<string> {
   return new SignJWT({
     email: user.email,
     name: user.name,
     email_verified: Boolean(user.emailVerifiedAt),
+    ...(extra?.mfa ? { mfa: true, mfa_at: Math.floor(Date.now() / 1000) } : {}),
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(user.id)

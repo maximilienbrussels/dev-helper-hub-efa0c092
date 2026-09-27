@@ -20,6 +20,15 @@ export const startPasskeyRegistration = createServerFn({ method: "POST" })
     const userId = context.userId as string;
     const email = (context.claims as { email?: string } | null)?.email ?? "";
 
+    // Wie al een tweede stap heeft, moet die eerst bevestigen voor hij een
+    // extra passkey toevoegt (anders omzeilt een gestolen wachtwoord de 2FA).
+    if ((context.claims as { mfa?: unknown } | null)?.mfa !== true) {
+      const { hasAnyFactor } = await import("./mfa.server");
+      if (await hasAnyFactor(userId)) {
+        throw new Error("Bevestig eerst je identiteit met je huidige tweede stap.");
+      }
+    }
+
     const { rpID, rpName } = await webauthnContext();
 
     const { data: existing } = await dbAdmin
@@ -98,7 +107,11 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
     });
     if (error) throw error;
 
-    return { ok: true as const, deviceType: credentialDeviceType };
+    // De nieuwe passkey telt meteen als voltooide tweede stap.
+    const auth = await import("./local-auth.server");
+    const user = await auth.findUserById(userId);
+    const token = user ? await auth.signSession(user, { mfa: true }) : null;
+    return { ok: true as const, deviceType: credentialDeviceType, token };
   });
 
 /** Login stap 1 (publiek): geeft altijd opties terug, ongeacht of het e-mailadres bestaat. */
@@ -175,7 +188,9 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
     const { isoBase64URL } = await import("@simplewebauthn/server/helpers");
-    const { webauthnContext, consumeChallenge } = await import("./webauthn.server");
+    const { webauthnContext, consumeChallengeValue, challengeFromResponse } = await import(
+      "./webauthn.server"
+    );
     const { checkRateLimit, clientIdentifier } = await import("./rate-limit.server");
     const { getRequestHeaders } = await import("@tanstack/react-start/server");
 
@@ -197,11 +212,10 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
 
     if (!stored) throw new Error("Geen passkey gevonden voor dit toestel.");
 
-    const expectedChallenge = await consumeChallenge({
-      purpose: "authentication",
-      userId: stored.user_id,
-      email: data.email ?? null,
-    });
+    const expectedChallenge = await consumeChallengeValue(
+      challengeFromResponse(data.response),
+      "authentication",
+    );
     if (!expectedChallenge) {
       throw new Error("Deze inlogpoging is verlopen. Probeer opnieuw.");
     }
@@ -240,20 +254,13 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
     const email = profile?.email;
     if (!email) throw new Error("Geen account gevonden voor deze passkey.");
 
-    // Direct inloggen: we geven een kortlevend handoff-token terug waarmee de
-    // browser meteen de sessie opent — geen e-mail, geen omleiding via OAuth.
+    // Direct inloggen: een passkey is zelf al een sterke tweede factor, dus de
+    // sessie krijgt meteen `mfa: true`.
     const auth = await import("./local-auth.server");
-    const handoff = await auth.mintToken({
-      kind: "magic",
-      email,
-      ttlSeconds: 300,
-      userId: String(stored.user_id),
-    });
-    if (!handoff) {
-      throw new Error("Inloggen via passkey is momenteel niet beschikbaar.");
-    }
-
-    return { email, token: handoff };
+    const user = await auth.findUserById(String(stored.user_id));
+    if (!user) throw new Error("Geen account gevonden voor deze passkey.");
+    const session = await auth.signSession(user, { mfa: true });
+    return { email, token: session, user };
   });
 
 /** Lijst van eigen passkeys, via de RLS-context van de gebruiker. */
