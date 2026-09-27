@@ -25,11 +25,14 @@ export const Route = createFileRoute("/veld")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const authHref = pathWithMode("/auth", "field");
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ href: authHref });
     const access = await checkPortalAccess().catch(() => null);
+    if (access?.mfa) {
+      throw redirect({ href: `/beveiliging?next=${encodeURIComponent(location.pathname)}` });
+    }
     if (!access?.allowed) throw redirect({ href: authHref });
     return { user: data.user, portalRole: access.role };
   },

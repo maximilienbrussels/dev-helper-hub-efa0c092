@@ -20,6 +20,15 @@ export const startPasskeyRegistration = createServerFn({ method: "POST" })
     const userId = context.userId as string;
     const email = (context.claims as { email?: string } | null)?.email ?? "";
 
+    // Wie al een tweede stap heeft, moet die eerst bevestigen voor hij een
+    // extra passkey toevoegt (anders omzeilt een gestolen wachtwoord de 2FA).
+    if ((context.claims as { mfa?: unknown } | null)?.mfa !== true) {
+      const { hasAnyFactor } = await import("./mfa.server");
+      if (await hasAnyFactor(userId)) {
+        throw new Error("Bevestig eerst je identiteit met je huidige tweede stap.");
+      }
+    }
+
     const { rpID, rpName } = await webauthnContext();
 
     const { data: existing } = await dbAdmin
@@ -98,7 +107,11 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
     });
     if (error) throw error;
 
-    return { ok: true as const, deviceType: credentialDeviceType };
+    // De nieuwe passkey telt meteen als voltooide tweede stap.
+    const auth = await import("./local-auth.server");
+    const user = await auth.findUserById(userId);
+    const token = user ? await auth.signSession(user, { mfa: true }) : null;
+    return { ok: true as const, deviceType: credentialDeviceType, token };
   });
 
 /** Login stap 1 (publiek): geeft altijd opties terug, ongeacht of het e-mailadres bestaat. */

@@ -38,6 +38,7 @@ import { friendlyAuthError } from "@/lib/auth-errors";
 import { peekRedirect, safeRedirectPath, stashRedirect } from "@/lib/redirect";
 import { useAuth } from "@/lib/auth";
 import { startPasskeyLogin, finishPasskeyLogin } from "@/lib/webauthn.functions";
+import { getMfaStatus } from "@/lib/mfa.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { requestMagicLink } from "@/lib/auth-email.functions";
 import { LoginCodeForm } from "@/components/LoginCodeForm";
@@ -261,6 +262,17 @@ export function LoginPage() {
 
   async function afterAuth() {
     await router.invalidate();
+    // Optionele 2FA voor bezoekers: wie ze instelde, bevestigt eerst de tweede stap.
+    try {
+      const status = await getMfaStatus();
+      const enrolled = status.methods.passkey || status.methods.totp || status.methods.phone;
+      if ((status.required || enrolled) && !status.verified) {
+        window.location.assign(`/beveiliging?next=${encodeURIComponent(redirectTo || "/account")}`);
+        return;
+      }
+    } catch {
+      /* status onbekend: gewoon verder */
+    }
     navigate({ to: redirectTo, replace: true });
   }
 
@@ -323,9 +335,8 @@ export function LoginPage() {
       toast.success(c.passkeyOk);
       // Direct aanmelden: het handoff-token opent meteen de sessie.
       const next = redirectTo || "/account";
-      window.location.assign(
-        `/inloglink?token=${encodeURIComponent(result.token)}&next=${encodeURIComponent(next)}`,
-      );
+      await supabase.auth.setSession(result.token);
+      window.location.assign(next);
     } catch (err) {
       const message = passkeyErrorMessage(err);
       if (message) toast.error(friendlyAuthError(message));

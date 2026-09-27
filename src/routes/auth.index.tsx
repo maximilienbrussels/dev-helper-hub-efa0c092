@@ -137,6 +137,13 @@ function AuthPage() {
     let staff = false;
     try {
       const access = await checkAccess();
+      if (access?.mfa) {
+        await navigate({
+          href: `/beveiliging?next=${encodeURIComponent(postLoginPath)}`,
+          replace: true,
+        });
+        return true;
+      }
       staff = Boolean(access?.allowed);
     } catch {
       const { data: rpc } = await supabase.rpc("is_staff", { _user_id: data.user.id });
@@ -344,10 +351,9 @@ function AuthPage() {
       const result = await finishPasskeyLogin({
         data: { email: email || undefined, response },
       });
-      toast.success("Passkey bevestigd — je wordt aangemeld.");
-      window.location.assign(
-        `/inloglink?token=${encodeURIComponent(result.token)}&next=${encodeURIComponent("/vandaag")}`,
-      );
+      await supabase.auth.setSession(result.token);
+      toast.success("Passkey bevestigd — je bent aangemeld.");
+      window.location.assign(postLoginPath);
     } catch (err) {
       // Annuleren (NotAllowedError) reset enkel de knop; echte fouten krijgen
       // een begrijpelijke melding (bv. SecurityError → HTTPS vereist).
