@@ -8,6 +8,8 @@ export type PortalAccess = {
   /** Rechten uit de rechtenmatrix; leeg bij volledige toegang (dan mag alles). */
   permissions: string[];
   fullAccess: boolean;
+  /** Tweede stap nodig: eerst instellen ("setup") of bevestigen ("verify"). */
+  mfa: "setup" | "verify" | null;
 };
 
 /**
@@ -32,5 +34,6 @@ export const checkPortalAccess = createServerFn({ method: "GET" })
       role: access.role,
       permissions: access.permissions,
       fullAccess: access.fullAccess,
+      mfa: access.mfa,
     };
   });

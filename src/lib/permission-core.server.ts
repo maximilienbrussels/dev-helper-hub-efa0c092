@@ -93,7 +93,7 @@ export type AccessSnapshot = {
 };
 
 /** Volledig beeld van de toegang van deze sessie (voor diagnose én controle). */
-export async function resolveAccess(context: PermissionContext): Promise<AccessSnapshot> {
+export async function resolveAccessRaw(context: PermissionContext): Promise<AccessSnapshot> {
   const email = await resolveUserEmail(context);
   const isFixedOwner = isSuperAdminEmail(email);
 
@@ -218,8 +218,8 @@ export type TeamAccess = {
  * uit de rechtenmatrix. Zo kan iemand nooit op de ene omgeving binnen en op de
  * andere geweigerd worden.
  */
-export async function resolveTeamAccess(context: PermissionContext): Promise<TeamAccess> {
-  const access = await resolveAccess(context);
+export async function resolveTeamAccessRaw(context: PermissionContext): Promise<TeamAccess> {
+  const access = await resolveAccessRaw(context);
 
   if (access.fullAccess) {
     const { PERMISSIONS } = await import("./rights-catalog");
@@ -285,4 +285,35 @@ export async function isTeamEmail(email: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/* ------------------------ tweestapsverificatie (2FA) ------------------------ */
+
+function mfaDone(context: PermissionContext): boolean {
+  return (context.claims as { mfa?: unknown } | undefined)?.mfa === true;
+}
+
+/**
+ * Toegang met verplichte tweede stap: zonder `mfa` in de sessie krijgt een
+ * medewerker géén enkel beheerrecht, ook niet via rechtstreekse serveraanroepen.
+ */
+export async function resolveAccess(context: PermissionContext): Promise<AccessSnapshot> {
+  const raw = await resolveAccessRaw(context);
+  if (mfaDone(context)) return raw;
+  return { ...raw, roles: [], isFixedOwner: false, isPortalAdmin: false, fullAccess: false };
+}
+
+export async function resolveTeamAccess(
+  context: PermissionContext,
+): Promise<TeamAccess & { mfa: "setup" | "verify" | null }> {
+  const raw = await resolveTeamAccessRaw(context);
+  if (!raw.allowed || mfaDone(context)) return { ...raw, mfa: null };
+  let enrolled = false;
+  try {
+    const { hasAnyFactor } = await import("./mfa.server");
+    enrolled = await hasAnyFactor(context.userId);
+  } catch {
+    enrolled = false;
+  }
+  return { ...raw, allowed: false, permissions: [], fullAccess: false, mfa: enrolled ? "verify" : "setup" };
 }
