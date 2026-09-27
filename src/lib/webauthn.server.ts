@@ -132,3 +132,39 @@ export async function consumeChallenge(opts: {
   if (new Date(data.expires_at).getTime() < Date.now()) return null;
   return data.challenge;
 }
+
+/**
+ * Eenmalig verbruik op basis van de exacte challenge-waarde uit het antwoord
+ * van de browser. Werkt voor inloggen met en zonder e-mailadres.
+ */
+export async function consumeChallengeValue(
+  challenge: string,
+  purpose: "registration" | "authentication",
+): Promise<string | null> {
+  if (!challenge) return null;
+  await ensureWebauthnSchema();
+  const { dbAdmin } = await import("@/lib/db-admin.server");
+  const { data } = await dbAdmin
+    .from("webauthn_challenges")
+    .select("id, challenge, expires_at")
+    .eq("purpose", purpose)
+    .eq("challenge", challenge)
+    .maybeSingle();
+  if (!data) return null;
+  await dbAdmin.from("webauthn_challenges").delete().eq("id", data.id);
+  if (new Date(data.expires_at).getTime() < Date.now()) return null;
+  return data.challenge;
+}
+
+/** Leest de challenge uit clientDataJSON (base64url) van een WebAuthn-antwoord. */
+export function challengeFromResponse(response: unknown): string {
+  try {
+    const raw = (response as { response?: { clientDataJSON?: string } }).response?.clientDataJSON;
+    if (!raw) return "";
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const json = JSON.parse(atob(b64 + "===".slice((b64.length + 3) % 4)));
+    return typeof json.challenge === "string" ? json.challenge : "";
+  } catch {
+    return "";
+  }
+}

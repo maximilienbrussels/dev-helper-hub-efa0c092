@@ -175,7 +175,9 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
     const { isoBase64URL } = await import("@simplewebauthn/server/helpers");
-    const { webauthnContext, consumeChallenge } = await import("./webauthn.server");
+    const { webauthnContext, consumeChallengeValue, challengeFromResponse } = await import(
+      "./webauthn.server"
+    );
     const { checkRateLimit, clientIdentifier } = await import("./rate-limit.server");
     const { getRequestHeaders } = await import("@tanstack/react-start/server");
 
@@ -197,11 +199,10 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
 
     if (!stored) throw new Error("Geen passkey gevonden voor dit toestel.");
 
-    const expectedChallenge = await consumeChallenge({
-      purpose: "authentication",
-      userId: stored.user_id,
-      email: data.email ?? null,
-    });
+    const expectedChallenge = await consumeChallengeValue(
+      challengeFromResponse(data.response),
+      "authentication",
+    );
     if (!expectedChallenge) {
       throw new Error("Deze inlogpoging is verlopen. Probeer opnieuw.");
     }
