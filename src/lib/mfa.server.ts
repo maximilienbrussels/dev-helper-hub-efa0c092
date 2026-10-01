@@ -152,17 +152,23 @@ export async function hasAnyFactor(userId: string): Promise<boolean> {
   return m.passkey || m.totp || m.phone;
 }
 
-/** Stuurt een sms via de eigen Android SMS-gateway (sms-gate.app). */
+/** Stuurt een sms via de eigen Android SMS-gateway (sms-gate.app, cloudserver). */
 export async function sendSms(to: string, message: string): Promise<void> {
-  const url = process.env["SMS_GATEWAY_URL"];
-  const token = process.env["SMS_GATEWAY_TOKEN"];
-  if (!url || !token) {
+  const url = process.env["SMS_GATEWAY_URL"] || "https://api.sms-gate.app/3rdparty/v1/message";
+  const user = process.env["SMS_GATEWAY_USERNAME"];
+  const pass = process.env["SMS_GATEWAY_PASSWORD"];
+  const deviceId = process.env["SMS_GATEWAY_DEVICE_ID"];
+  if (!user || !pass) {
     throw new Error("Sms-verzending is nog niet ingesteld. Kies een andere methode of probeer later.");
   }
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ to, message }),
+    headers: { "Content-Type": "application/json", Authorization: `Basic ${btoa(`${user}:${pass}`)}` },
+    body: JSON.stringify({
+      textMessage: { text: message },
+      phoneNumbers: [to],
+      ...(deviceId ? { deviceId } : {}),
+    }),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");

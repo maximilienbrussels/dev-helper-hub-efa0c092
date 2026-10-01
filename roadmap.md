@@ -16,7 +16,7 @@
 - [x] Passkey-inloggen hersteld (challenge-fout, medewerkers werden niet aangemeld)
 - [x] 2FA: verplicht voor medewerkers, optioneel voor bezoekers (passkey, authenticator, sms BE, berichtenapp buitenland) — pagina /beveiliging
 - [ ] Beheerpagina "Verificaties" (serverfuncties listIntlRequests/decideIntlRequest bestaan al, scherm nog bouwen)
-- [ ] Sms-gateway: SMS_GATEWAY_URL + SMS_GATEWAY_TOKEN invullen (wacht op gebruiker)
+- [x] Sms-gateway sms-gate.app gekoppeld (basisauthenticatie)
 - [ ] Messenger-gebruikersnaam (wacht op gebruiker)
 - [ ] Foto-opslag (Scaleway) per beheerscherm nalopen
 - [ ] Deelvoorbeelden en naam Maxilien overal gelijktrekken
