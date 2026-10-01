@@ -86,7 +86,8 @@ const ERR_COPY: Record<
   },
 };
 
-export function AppErrorFallback({ error }: { error: Error; reset?: () => void }) {
+export function AppErrorFallback({ error: rawError }: { error: unknown; reset?: () => void }) {
+  const error = rawError instanceof Error ? rawError : new Error(String(rawError));
   const { lang } = useT();
   const c = ERR_COPY[lang] ?? ERR_COPY.nl;
   const [open, setOpen] = useState(false);

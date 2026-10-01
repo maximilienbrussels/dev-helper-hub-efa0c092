@@ -254,7 +254,10 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient, appMode } = Route.useRouteContext();
+  const { queryClient, appMode } = Route.useRouteContext() as {
+    queryClient: QueryClient;
+    appMode?: AppMode;
+  };
 
   // SSR en de eerste client-render gebruiken dezelfde deterministische modus
   // (env → hostname → query); pas na hydratie kijken we naar de dev-override.

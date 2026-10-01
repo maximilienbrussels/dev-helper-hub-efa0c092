@@ -31,7 +31,7 @@ export const Route = createFileRoute("/qr/$animalId")({
   notFoundComponent: () => <QrNotFound />,
   errorComponent: ({ error }) => (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <p className="text-sm text-destructive">{error.message}</p>
+      <p className="text-sm text-destructive">{error instanceof Error ? error.message : String(error)}</p>
     </div>
   ),
 });
