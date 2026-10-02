@@ -4,6 +4,7 @@ import { isLang, localizedHead, DEFAULT_LANG, type Lang } from "@/lib/routes-i18
 import { homeJsonLd } from "@/lib/seo-jsonld";
 
 export const Route = createFileRoute("/$lang/")({
+  ssr: "data-only",
   // Fail-safe: een databasefout tijdens SSR mag de pagina niet laten crashen.
   loader: async ({ context }) => {
     const safe = (p: Promise<unknown>) =>
