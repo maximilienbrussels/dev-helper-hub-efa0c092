@@ -13,10 +13,10 @@ import {
 export const Route = createFileRoute("/veld/diensten")({
   head: () => ({
     meta: [
-      { title: "Diensten — Maximilien veld-app" },
+      { title: "Diensten — Maxilien veld-app" },
       { name: "description", content: "Actieve diensten en tarieven van de stadsboerderij." },
       { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Diensten — Maximilien veld-app" },
+      { property: "og:title", content: "Diensten — Maxilien veld-app" },
       { property: "og:description", content: "Actieve diensten en tarieven van de stadsboerderij." },
     ],
   }),

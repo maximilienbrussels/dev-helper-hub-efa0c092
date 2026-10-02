@@ -12,6 +12,7 @@ import { pageKeyForAnySlug, redirectToLocalized, subIdForAnySlug } from "@/lib/l
  * doorgestuurd naar de gelokaliseerde URL /{taal}/academie/{slug}.
  */
 export const Route = createFileRoute("/$lang")({
+  ssr: "data-only",
   beforeLoad: async ({ params, context, location }) => {
     if (isLang(params.lang)) return;
 

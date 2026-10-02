@@ -16,10 +16,10 @@ export const Route = createFileRoute("/veld")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Maximilien veld-app" },
+      { title: "Maxilien veld-app" },
       { name: "description", content: "Dagelijkse terreinwerking van La Ferme du parc Maximilien." },
       { name: "robots", content: "noindex, nofollow" },
-      { property: "og:title", content: "Maximilien veld-app" },
+      { property: "og:title", content: "Maxilien veld-app" },
       { property: "og:description", content: "Dagelijkse terreinwerking van La Ferme du parc Maximilien." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

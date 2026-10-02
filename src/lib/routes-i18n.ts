@@ -997,7 +997,7 @@ export const PAGE_META: Record<PageKey, Record<Lang, Meta>> = {
 /** Branded social share cards (1200x630) per pagina; fallback = /og/default.png. */
 export const OG_IMAGES: Partial<Record<PageKey, string>> = {
   support: "/og/donaties.png",
-  animals: "/og/donaties.png",
+  animals: "/og/og-bezoek.jpg",
   rental: "/og/zaalverhuur.png",
   seminars: "/og/zaalverhuur.png",
   teambuilding: "/og/zaalverhuur.png",

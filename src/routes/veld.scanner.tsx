@@ -5,10 +5,10 @@ import { PickupScanner } from "@/components/portal/PickupScanner";
 export const Route = createFileRoute("/veld/scanner")({
   head: () => ({
     meta: [
-      { title: "Scanner — Maximilien veld-app" },
+      { title: "Scanner — Maxilien veld-app" },
       { name: "description", content: "QR- en certificaatscanner voor afhalingen op het terrein." },
       { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Scanner — Maximilien veld-app" },
+      { property: "og:title", content: "Scanner — Maxilien veld-app" },
       { property: "og:description", content: "QR- en certificaatscanner voor afhalingen op het terrein." },
     ],
   }),

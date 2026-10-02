@@ -162,12 +162,7 @@ export const deleteProduct = createServerFn({ method: "POST" })
         update products set deleted_at = now() where id = ${data.id}
         returning title, image_url
       `) as Array<{ title: string | null; image_url: string | null }>;
-      // Bijhorende beelden uit de Europese bucket halen (geen weesbestanden).
-      const extra = (await db`
-        select url from product_images where product_id = ${data.id}
-      `.catch(() => [])) as Array<{ url: string | null }>;
-      const { deleteManyByPublicUrl } = await import("./s3.server");
-      await deleteManyByPublicUrl([rows[0]?.image_url ?? null, ...extra.map((r) => r.url)]);
+      // Foto's blijven bewaard zolang het product herstelbaar is.
       await log(context, {
         action: "delete",
         entity: "product",
