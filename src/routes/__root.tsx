@@ -151,7 +151,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       {
         name: "apple-mobile-web-app-title",
-        content: getEnvAppMode() === "field" ? "Maximilien Veld" : "Maximiliaan",
+        content: getEnvAppMode() === "field" ? "Maxilien Veld" : "Maxilien",
       },
 
       { title: "La Ferme du parc Maximilien — Stadsboerderij Brussel" },
