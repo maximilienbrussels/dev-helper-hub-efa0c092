@@ -82,6 +82,7 @@ const NAV: NavItem[] = [
   { page: "team", key: "nav.team", icon: Users, permission: "view_team", group: "admin" },
   { page: "site", key: "nav.site", icon: SlidersHorizontal, permission: "manage_settings", group: "admin" },
   { page: "log", key: "nav.log", icon: History, permission: "view_audit", group: "admin" },
+  { page: "verifications", key: "nav.verifications", icon: ShieldCheck, permission: "manage_rights", group: "admin" },
   { page: "api", key: "nav.api", icon: KeyRound, permission: "manage_settings", group: "admin" },
 ];
 

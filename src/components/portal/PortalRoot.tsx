@@ -19,6 +19,7 @@ import { ServicesPage } from "@/components/portal/pages/ServicesPage";
 import { ShopPage } from "@/components/portal/pages/ShopPage";
 import { PickupsPage } from "@/components/portal/pages/PickupsPage";
 import { AcademyPage } from "@/components/portal/pages/AcademyPage";
+import { VerificationsPage } from "@/components/portal/pages/VerificationsPage";
 import { ResultsPage } from "@/components/portal/pages/ResultsPage";
 import { TeamPage } from "@/components/portal/pages/TeamPage";
 import { EmailPage } from "@/components/portal/pages/EmailPage";
@@ -48,6 +49,7 @@ const PAGES: Record<PortalPage, () => React.ReactElement> = {
   log: LogPage,
   api: ApiKeysPage,
   copilot: CoPilotPage,
+  verifications: VerificationsPage,
 };
 
 /** Elke portaalpagina hangt aan een recht uit de rechtenmatrix. */

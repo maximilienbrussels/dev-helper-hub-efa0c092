@@ -30,6 +30,7 @@ const dict: Dict = {
   "nav.scan": { fr: "Scanner", nl: "Scannen", en: "Scan" },
   "nav.pickups": { fr: "Retraits", nl: "Afhalingen", en: "Pickups" },
   "nav.academy": { fr: "Académies", nl: "Academies", en: "Academies" },
+  "nav.verifications": { fr: "Vérifications", nl: "Verificaties", en: "Verifications" },
   "nav.results": { fr: "Résultats Academy", nl: "Academy-resultaten", en: "Academy results" },
   "nav.social": { fr: "Réseaux sociaux", nl: "Social Media", en: "Social Media" },
   "nav.albums": { fr: "Albums photos", nl: "Fotoalbums", en: "Photo albums" },
