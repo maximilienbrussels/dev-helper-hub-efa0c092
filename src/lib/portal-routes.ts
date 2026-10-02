@@ -192,6 +192,10 @@ export const PAGE_META: Record<PortalPage, { title: string; description: string 
     description:
       "Vraag de AI Co-Pilot om site-instellingen, tarieven, openingsuren, pagina-afbeeldingen of e-mailsjablonen aan te passen.",
   },
+  verifications: {
+    title: "Verificaties — Beheerportaal Maxilien",
+    description: "Keur buitenlandse verificatieaanvragen goed na ontvangst van het bericht.",
+  },
 };
 
 export function pageFromSlug(lang: Lang, slug: string): PortalPage | null {
