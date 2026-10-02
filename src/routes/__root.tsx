@@ -101,6 +101,7 @@ const JSON_LD = {
 };
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  ssr: "data-only",
   /**
    * Strikte domeinscheiding: op maximilien.site (admin-modus) bestaan de publieke
    * marketingroutes niet. Elk niet-adminpad (/, /nl, /fr/…, /webshop …) gaat
