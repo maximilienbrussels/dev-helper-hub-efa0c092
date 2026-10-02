@@ -97,6 +97,8 @@ function resolve(langParam: string, splat: string | undefined): Resolved {
 }
 
 export const Route = createFileRoute("/$lang/$")({
+  // Loaders + head op de server, zodat elke pagina een eigen deelvoorbeeld heeft.
+  ssr: "data-only",
   loader: async ({ params, context }) => {
     const { lang, key, sub, portal } = resolve(params.lang, params._splat);
     if (portal) return { lang, key, portal };
