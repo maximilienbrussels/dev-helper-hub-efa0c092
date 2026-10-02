@@ -15,7 +15,7 @@
 - [x] Volledige proefrit quiz→certificaat→QR in 3 talen (testdata weer opgeruimd)
 - [x] Passkey-inloggen hersteld (challenge-fout, medewerkers werden niet aangemeld)
 - [x] 2FA: verplicht voor medewerkers, optioneel voor bezoekers (passkey, authenticator, sms BE, berichtenapp buitenland) — pagina /beveiliging
-- [ ] Beheerpagina "Verificaties" (serverfuncties listIntlRequests/decideIntlRequest bestaan al, scherm nog bouwen)
+- [x] Beheerpagina "Verificaties"
 - [x] Sms-gateway sms-gate.app gekoppeld (basisauthenticatie)
 - [ ] Messenger-gebruikersnaam (wacht op gebruiker)
 - [ ] Foto-opslag (Scaleway) per beheerscherm nalopen

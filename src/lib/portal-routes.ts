@@ -4,7 +4,7 @@ export const LANGS: Lang[] = ["fr", "nl", "en"];
 
 export type PortalPage =
     | "today" | "requests" | "calendar" | "services" | "shop" | "academy" | "results" | "social" | "team"
-  | "email" | "site" | "log" | "api" | "copilot" | "albums" | "residents" | "pickups";
+  | "email" | "site" | "log" | "api" | "copilot" | "albums" | "residents" | "pickups" | "verifications";
 
 export const PORTAL_PAGES: PortalPage[] = [
   "today",
@@ -24,6 +24,7 @@ export const PORTAL_PAGES: PortalPage[] = [
   "log",
   "api",
   "copilot",
+  "verifications",
 ];
 
 /** Language-specific URL slugs: /nl/vandaag, /fr/aujourdhui, /en/today … */
@@ -46,6 +47,7 @@ export const SLUGS: Record<Lang, Record<PortalPage, string>> = {
     log: "logboek",
     api: "api",
     copilot: "co-pilot",
+    verifications: "verificaties",
   },
   fr: {
     today: "aujourdhui",
@@ -65,6 +67,7 @@ export const SLUGS: Record<Lang, Record<PortalPage, string>> = {
     log: "journal",
     api: "api",
     copilot: "co-pilote",
+    verifications: "verifications",
   },
   en: {
     today: "today",
@@ -84,6 +87,7 @@ export const SLUGS: Record<Lang, Record<PortalPage, string>> = {
     log: "log",
     api: "api",
     copilot: "co-pilot",
+    verifications: "verifications",
   },
 };
 
@@ -187,6 +191,10 @@ export const PAGE_META: Record<PortalPage, { title: string; description: string 
     title: "Admin Co-Pilot — Beheerportaal Ferme du Parc",
     description:
       "Vraag de AI Co-Pilot om site-instellingen, tarieven, openingsuren, pagina-afbeeldingen of e-mailsjablonen aan te passen.",
+  },
+  verifications: {
+    title: "Verificaties — Beheerportaal Maxilien",
+    description: "Keur buitenlandse verificatieaanvragen goed na ontvangst van het bericht.",
   },
 };
 

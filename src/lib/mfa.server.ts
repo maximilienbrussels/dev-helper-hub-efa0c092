@@ -157,7 +157,8 @@ export async function sendSms(to: string, message: string): Promise<void> {
   const url = process.env["SMS_GATEWAY_URL"] || "https://api.sms-gate.app/3rdparty/v1/message";
   const user = process.env["SMS_GATEWAY_USERNAME"];
   const pass = process.env["SMS_GATEWAY_PASSWORD"];
-  const deviceId = process.env["SMS_GATEWAY_DEVICE_ID"];
+  // Eén toestel gekoppeld: de gateway kiest het zelf (een verkeerd getypt id laat de sms stil mislukken).
+  const deviceId = undefined as string | undefined;
   if (!user || !pass) {
     throw new Error("Sms-verzending is nog niet ingesteld. Kies een andere methode of probeer later.");
   }
