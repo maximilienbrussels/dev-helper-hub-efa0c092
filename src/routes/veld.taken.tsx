@@ -17,10 +17,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/veld/taken")({
   head: () => ({
     meta: [
-      { title: "Taken — Maximilien veld-app" },
+      { title: "Taken — Maxilien veld-app" },
       { name: "description", content: "Dagelijkse terreintaken per zone met afvinken." },
       { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Taken — Maximilien veld-app" },
+      { property: "og:title", content: "Taken — Maxilien veld-app" },
       { property: "og:description", content: "Dagelijkse terreintaken per zone met afvinken." },
     ],
   }),

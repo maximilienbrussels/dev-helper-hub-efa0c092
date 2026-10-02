@@ -18,10 +18,10 @@ import {
 export const Route = createFileRoute("/veld/")({
   head: () => ({
     meta: [
-      { title: "Vandaag — Maximilien veld-app" },
+      { title: "Vandaag — Maxilien veld-app" },
       { name: "description", content: "De dagplanning van de stadsboerderij voor het team op het terrein." },
       { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Vandaag — Maximilien veld-app" },
+      { property: "og:title", content: "Vandaag — Maxilien veld-app" },
       { property: "og:description", content: "De dagplanning van de stadsboerderij voor het team op het terrein." },
     ],
   }),

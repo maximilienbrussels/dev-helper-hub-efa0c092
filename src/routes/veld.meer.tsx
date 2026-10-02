@@ -15,10 +15,10 @@ import { usePwaInstall } from "@/lib/pwa-install";
 export const Route = createFileRoute("/veld/meer")({
   head: () => ({
     meta: [
-      { title: "Meer — Maximilien veld-app" },
+      { title: "Meer — Maxilien veld-app" },
       { name: "description", content: "Profiel, taal en afmelden in de veld-app van de stadsboerderij." },
       { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Meer — Maximilien veld-app" },
+      { property: "og:title", content: "Meer — Maxilien veld-app" },
       { property: "og:description", content: "Profiel, taal en afmelden in de veld-app van de stadsboerderij." },
     ],
   }),

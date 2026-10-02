@@ -20,10 +20,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/veld/aanvragen")({
   head: () => ({
     meta: [
-      { title: "Aanvragen — Maximilien veld-app" },
+      { title: "Aanvragen — Maxilien veld-app" },
       { name: "description", content: "Openstaande aanvragen en boekingen van de stadsboerderij." },
       { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Aanvragen — Maximilien veld-app" },
+      { property: "og:title", content: "Aanvragen — Maxilien veld-app" },
       { property: "og:description", content: "Openstaande aanvragen en boekingen van de stadsboerderij." },
     ],
   }),
