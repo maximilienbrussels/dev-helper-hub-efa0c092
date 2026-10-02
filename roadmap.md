@@ -18,5 +18,6 @@
 - [x] Beheerpagina "Verificaties"
 - [x] Sms-gateway sms-gate.app gekoppeld (basisauthenticatie)
 - [ ] Messenger-gebruikersnaam (wacht op gebruiker)
-- [ ] Foto-opslag (Scaleway) per beheerscherm nalopen
-- [ ] Deelvoorbeelden en naam Maxilien overal gelijktrekken
+- [x] Foto-opslag nagelopen (productfoto's bleven niet bewaard bij herstel — hersteld)
+- [x] Deelvoorbeelden per pagina en naam Maxilien
+- [ ] Test-sms blijft 'wachten': gsm haalt niet op (wacht op gebruiker)
