@@ -114,22 +114,22 @@ export const PAGE_META: Record<PortalPage, { title: string; description: string 
       "Dagoverzicht voor het terreinteam: groepen, bezoekers, gereserveerde zones en check-ins.",
   },
   requests: {
-    title: "Aanvragen (CRM) — Beheerportaal Ferme du Parc",
+    title: "Aanvragen (CRM) — Beheerportaal Maxilien",
     description:
       "Beheer teambuilding-, privatiserings- en zaalverhuuraanvragen via kanban of tabel.",
   },
   calendar: {
-    title: "Kalender & Bezetting — Beheerportaal Ferme du Parc",
+    title: "Kalender & Bezetting — Beheerportaal Maxilien",
     description:
       "Visuele bezetting per ruimte, slots blokkeren voor onderhoud en handmatige reservaties toevoegen.",
   },
   services: {
-    title: "Diensten & Tarieven — Beheerportaal Ferme du Parc",
+    title: "Diensten & Tarieven — Beheerportaal Maxilien",
     description:
       "Pas prijzen, drietalige beschrijvingen en zichtbaarheid van arrangementen aan zonder code.",
   },
   shop: {
-    title: "Producten & Webshop — Beheerportaal Ferme du Parc",
+    title: "Producten & Webshop — Beheerportaal Maxilien",
     description:
       "Beheer hoevewinkelproducten, prijzen, voorraad en volg de binnenkomende bestellingen op.",
   },
@@ -139,7 +139,7 @@ export const PAGE_META: Record<PortalPage, { title: string; description: string 
       "Valideer afhaalcodes aan de balie en vink openstaande bestellingen af.",
   },
   academy: {
-    title: "Academies — Beheerportaal Ferme du Parc",
+    title: "Academies — Beheerportaal Maxilien",
     description:
       "Beheer academykaarten en quizvragen in NL/FR/EN, bekijk de preview zoals bezoekers ze zien en vraag goedkeuring om live te gaan.",
   },
@@ -149,46 +149,46 @@ export const PAGE_META: Record<PortalPage, { title: string; description: string 
       "Vergelijk slagingspercentages, uitvalmomenten en gemiddelde scores per dier, leeftijdscategorie en taal.",
   },
   social: {
-    title: "Social — Beheerportaal Ferme du Parc",
+    title: "Social — Beheerportaal Maxilien",
     description:
       "Beheer Bluesky-berichten en eigen social posts, en de centrale beeldbank voor alle media.",
   },
   albums: {
-    title: "Fotoalbums — Beheerportaal Ferme du Parc",
+    title: "Fotoalbums — Beheerportaal Maxilien",
     description:
       "Voeg foto's toe per thema of per dier, pas de volgorde en bijschriften aan, en verwijder beelden uit de opslag.",
   },
   residents: {
-    title: "Bewoners & dieren — Beheerportaal Ferme du Parc",
+    title: "Bewoners & dieren — Beheerportaal Maxilien",
     description:
       "Beheer de dieren van de boerderij: naam, soort, verhaaltje en profielfoto voor 'De bewoners' op de site.",
   },
   team: {
-    title: "Teambeheer — Beheerportaal Ferme du Parc",
+    title: "Teambeheer — Beheerportaal Maxilien",
     description: "Beheer teamprofielen, rollen (Admin/Team) en toegang tot het beheerportaal.",
   },
   email: {
-    title: "E-mail & mailserver — Beheerportaal Ferme du Parc",
+    title: "E-mail & mailserver — Beheerportaal Maxilien",
     description:
       "Stel de mailserver in, verstuur een testmail en bekijk waarom een mail eventueel niet aankwam.",
   },
   site: {
-    title: "Site — Beheerportaal Ferme du Parc",
+    title: "Site — Beheerportaal Maxilien",
     description:
       "Zet publieke pagina's of modules tijdelijk uit, beheer de onderhoudsmodus en de aankondigingsbalk.",
   },
   log: {
-    title: "Logboek & prullenbak — Beheerportaal Ferme du Parc",
+    title: "Logboek & prullenbak — Beheerportaal Maxilien",
     description:
       "Bekijk wie wat wijzigde in het portaal en herstel per ongeluk verwijderde items binnen 30 dagen.",
   },
   api: {
-    title: "API & Integraties — Beheerportaal Ferme du Parc",
+    title: "API & Integraties — Beheerportaal Maxilien",
     description:
       "Beheer API-sleutels voor externe integraties met de hoevewinkel, boekingen en Maxim-kennisbank.",
   },
   copilot: {
-    title: "Admin Co-Pilot — Beheerportaal Ferme du Parc",
+    title: "Admin Co-Pilot — Beheerportaal Maxilien",
     description:
       "Vraag de AI Co-Pilot om site-instellingen, tarieven, openingsuren, pagina-afbeeldingen of e-mailsjablonen aan te passen.",
   },
