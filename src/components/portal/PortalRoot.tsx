@@ -71,6 +71,7 @@ export const PAGE_PERMISSION: Record<PortalPage, Permission> = {
   log: "view_audit",
   api: "manage_settings",
   copilot: "manage_settings",
+  verifications: "manage_rights",
 };
 
 /**
