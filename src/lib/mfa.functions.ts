@@ -324,9 +324,29 @@ export const removeMfaMethod = createServerFn({ method: "POST" })
       throw new Error("Medewerkers moeten minstens één tweede stap behouden.");
     }
     if (data.method === "totp") {
-      await mfa.upsertMfa(ctx.userId, { totp_secret_enc: null, totp_enabled_at: null, recovery_hashes: [] });
+      await mfa.upsertMfa(ctx.userId, {
+        totp_secret_enc: null,
+        totp_enabled_at: null,
+        ...(left === 0 ? { recovery_hashes: [] } : {}),
+      });
     } else {
       await mfa.upsertMfa(ctx.userId, { phone: null, phone_verified_at: null, phone_method: null, phone_country: null });
     }
     return { ok: true as const };
+  });
+
+/** Nieuwe herstelcodes maken (vervangt de oude). Kan met elke tweede stap. */
+export const regenerateRecoveryCodes = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .handler(async ({ context }) => {
+    const ctx = context as unknown as Ctx;
+    if (ctx.claims["mfa"] !== true) throw new Error("Bevestig eerst je tweede stap.");
+    const mfa = await import("./mfa.server");
+    if (!(await mfa.hasAnyFactor(ctx.userId))) throw new Error("Stel eerst een tweede stap in.");
+    await rate("mfa-recovery", ctx.userId, 5, 3600);
+    const codes = newRecoveryCodes();
+    await mfa.upsertMfa(ctx.userId, {
+      recovery_hashes: await Promise.all(codes.map((c) => mfa.hashCode(`rec:${c}`))),
+    });
+    return { recoveryCodes: codes };
   });
