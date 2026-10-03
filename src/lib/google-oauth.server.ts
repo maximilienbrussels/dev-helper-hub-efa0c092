@@ -41,7 +41,7 @@ export function siteOrigin(request: Request): string {
 export const DEFAULT_APP_URL = "https://maximilien.dlp.li";
 
 /** Ontwikkel- of voorvertoningshost? Daar blijven we op de eigen origin. */
-function isEphemeralHost(host: string): boolean {
+export function isEphemeralHost(host: string): boolean {
   const h = host.toLowerCase();
   return (
     h.startsWith("localhost") ||
@@ -54,37 +54,21 @@ function isEphemeralHost(host: string): boolean {
 }
 
 /**
- * Vast, vertrouwd basisadres voor OAuth-callbacks.
- *
- * Aanbieders (Google, GitHub, Mastodon, Bluesky) aanvaarden enkel exacte,
- * vooraf geregistreerde redirect-URI's. Daarom gebruiken we altijd het
- * canonieke adres uit de omgeving (APP_URL / NEXT_PUBLIC_APP_URL /
- * VITE_APP_URL), zodat wisselende deploy-hashes de flow nooit breken.
- * Enkel op localhost of een tijdelijke voorvertoning vallen we terug op de
- * huidige origin, anders zou de state-cookie van domein wisselen.
+ * Basisadres voor OAuth-callbacks = het domein waarop de bezoeker zit.
+ * Zo werkt elke deploy (eigen domein, Vercel, preview) zolang
+ * `<domein>/api/auth/callback/<aanbieder>` bij de aanbieder geregistreerd is.
+ * Optioneel: OAUTH_FORCE_ORIGIN dwingt één vast adres af.
  */
 export function authOrigin(request: Request): string {
-  const current = siteOrigin(request);
-  const configured = (
-    process.env["APP_URL"] ||
-    process.env["NEXT_PUBLIC_APP_URL"] ||
-    process.env["VITE_APP_URL"] ||
-    DEFAULT_APP_URL
-  ).trim();
-
-  let host: string;
-  try {
-    host = new URL(current).host;
-  } catch {
-    return configured.replace(/\/+$/, "");
+  const forced = (process.env["OAUTH_FORCE_ORIGIN"] ?? "").trim();
+  if (forced) {
+    try {
+      return new URL(forced).origin;
+    } catch {
+      /* ongeldig: negeren */
+    }
   }
-  if (isEphemeralHost(host)) return current;
-
-  try {
-    return new URL(configured).origin;
-  } catch {
-    return current;
-  }
+  return siteOrigin(request);
 }
 
 /** Canonieke callback-URL van een aanbieder. */
