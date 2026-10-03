@@ -21,6 +21,8 @@ import {
   checkIntlVerification,
   confirmTotpSetup,
   getMfaStatus,
+  regenerateRecoveryCodes,
+  removeMfaMethod,
   sendSmsCode,
   startIntlVerification,
   startTotpSetup,
@@ -146,6 +148,7 @@ function SecurityPage() {
           <li>{status.methods.totp ? "✅" : "▫️"} Authenticator-app</li>
           <li>{status.methods.phone ? "✅" : "▫️"} Telefoonverificatie</li>
         </ul>
+        <ManageMethods status={status} onRecovery={setRecovery} onChanged={load} />
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => window.location.assign(target)}>Verder</Button>
           {!status.methods.totp && (
@@ -191,6 +194,72 @@ function SecurityPage() {
         </button>
       )}
     </Shell>
+  );
+}
+
+function ManageMethods({
+  status,
+  onRecovery,
+  onChanged,
+}: {
+  status: MfaStatus;
+  onRecovery: (c: string[]) => void;
+  onChanged: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } catch (e) {
+      toast.error(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = (m: "totp" | "phone") =>
+    run(async () => {
+      if (!window.confirm("Deze methode verwijderen?")) return;
+      await removeMfaMethod({ data: { method: m } });
+      toast.success("Verwijderd.");
+      await onChanged();
+    });
+  return (
+    <div className="space-y-3 rounded-2xl border border-border p-4 text-sm">
+      {status.methods.phone && (
+        <div className="flex items-center justify-between gap-2">
+          <span>Telefoon: {status.phone ?? "gekoppeld"}</span>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void remove("phone")}>
+            Verwijderen
+          </Button>
+        </div>
+      )}
+      {status.methods.totp && (
+        <div className="flex items-center justify-between gap-2">
+          <span>Authenticator-app</span>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void remove("totp")}>
+            Verwijderen
+          </Button>
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-2">
+        <span>Herstelcodes: nog {status.recoveryLeft} over</span>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() =>
+            void run(async () => {
+              if (status.recoveryLeft > 0 && !window.confirm("Je oude herstelcodes werken dan niet meer. Doorgaan?")) return;
+              const r = await regenerateRecoveryCodes();
+              onRecovery(r.recoveryCodes);
+            })
+          }
+        >
+          {status.recoveryLeft > 0 ? "Nieuwe codes" : "Codes maken"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
