@@ -48,7 +48,7 @@ export const Route = createFileRoute("/api/auth/callback/google")({
         if (encoded) {
           try {
             const decoded = atob(encoded);
-            if (decoded.startsWith("/")) next = decoded;
+            if (isSafePath(decoded)) next = decoded;
           } catch {
             /* ongeldige state-payload: gewoon negeren */
           }
@@ -129,3 +129,6 @@ export const Route = createFileRoute("/api/auth/callback/google")({
     },
   },
 });
+
+/** Enkel paden binnen deze site (geen //andere-site of /\\andere-site). */
+const isSafePath = (x: string) => x.startsWith("/") && !x.startsWith("//") && !x.startsWith("/\\");

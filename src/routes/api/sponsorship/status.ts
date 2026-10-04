@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/sponsorship/status")({
           if (stripeConfigured()) {
             try {
               const session = await stripeServer().checkout.sessions.retrieve(sessionId);
-              if (session.payment_status === "paid" || session.status === "complete") {
+              if (session.status === "complete" && session.payment_status === "paid") {
                 const subId =
                   typeof session.subscription === "string" ? session.subscription : null;
                 row = await finalizeSponsorshipForSession(sessionId, subId);
