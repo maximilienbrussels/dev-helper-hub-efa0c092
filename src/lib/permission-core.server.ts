@@ -90,12 +90,30 @@ export type AccessSnapshot = {
   isFixedOwner: boolean;
   isPortalAdmin: boolean;
   fullAccess: boolean;
+  /** Is het e-mailadres van deze sessie bevestigd? Rechten op basis van e-mail vereisen dat. */
+  emailVerified: boolean;
 };
+
+/** Bevestigd e-mailadres: rechten via e-mail gelden pas wanneer de mailbox bevestigd is. */
+async function isEmailVerified(userId: string, email: string | null): Promise<boolean> {
+  if (!userId || !email) return false;
+  try {
+    const rows = (await (await sql())`
+      select 1 as ok from public.app_users
+       where id = ${userId}::uuid and lower(email) = ${email} and email_verified_at is not null
+       limit 1
+    `) as unknown[];
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 /** Volledig beeld van de toegang van deze sessie (voor diagnose én controle). */
 export async function resolveAccessRaw(context: PermissionContext): Promise<AccessSnapshot> {
   const email = await resolveUserEmail(context);
-  const isFixedOwner = isSuperAdminEmail(email);
+  const emailVerified = await isEmailVerified(context.userId, email);
+  const isFixedOwner = emailVerified && isSuperAdminEmail(email);
 
   if (isFixedOwner && email) {
     // Zelfherstellend: maak de ontbrekende rijen aan zodat database en
@@ -111,7 +129,7 @@ export async function resolveAccessRaw(context: PermissionContext): Promise<Acce
   const roles = await loadRoles(context.userId);
 
   let isPortalAdmin = false;
-  if (email) {
+  if (email && emailVerified) {
     try {
       const rows = (await (await sql())`
         select role, active from portal_admins where lower(email) = ${email} limit 1
@@ -124,7 +142,7 @@ export async function resolveAccessRaw(context: PermissionContext): Promise<Acce
   }
 
   const fullAccess = isFixedOwner || isPortalAdmin || roles.some(isFullAccessRole);
-  return { email, userId: context.userId, roles, isFixedOwner, isPortalAdmin, fullAccess };
+  return { email, userId: context.userId, roles, isFixedOwner, isPortalAdmin, fullAccess, emailVerified };
 }
 
 /** True wanneer de gebruiker eigenaar/super-admin is (alle rechten). */
@@ -234,7 +252,7 @@ export async function resolveTeamAccessRaw(context: PermissionContext): Promise<
 
   const permissions = await loadGrantedPermissions(access.roles);
   let role: "admin" | "team" | null = null;
-  if (access.email) {
+  if (access.email && access.emailVerified) {
     try {
       const rows = (await (await sql())`
         select role, active from portal_admins where lower(email) = ${access.email} limit 1
