@@ -23,6 +23,10 @@ export const fetchPortalData = createServerFn({ method: "GET" })
   .middleware([requireAuth])
   .handler(async ({ context }): Promise<PortalSnapshot> => {
     const { userId } = context;
+    // Enkel medewerkers (team of beheer, met tweede stap) zien boekingen en profielen.
+    const { resolveTeamAccess } = await import("@/lib/permission-core.server");
+    const team = await resolveTeamAccess({ userId, claims: context.claims });
+    if (!team.allowed) throw new Error("Geen toegang tot het portaal.");
     // Rechtstreeks op Neon: de oude Data API-client schreef/las niet meer.
     const { dbAdmin: supabase } = await import("@/lib/db-admin.server");
 
