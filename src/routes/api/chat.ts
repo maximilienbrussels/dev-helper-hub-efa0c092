@@ -310,7 +310,11 @@ export const Route = createFileRoute("/api/chat")({
         const primaryModel = pickModel(lastUser ? toText(lastUser.content) : "");
         const chatMessages = [
           { role: "system", content: system },
-          ...messages.map((m) => ({ role: m.role, content: toText(m.content) })),
+          // Enkel gebruiker/assistent: een bezoeker kan nooit zelf systeeminstructies toevoegen.
+          ...messages.map((m) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: toText(m.content),
+          })),
         ];
 
         const callModel = async (model: string, timeoutMs?: number) => {
