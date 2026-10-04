@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/auth/google")({
 
         const params = new URL(request.url).searchParams;
         const requested = params.get("next");
-        const next = requested && requested.startsWith("/") ? requested : "";
+        const next = requested && isSafePath(requested) ? requested : "";
         // Alleen wanneer een teamlid uitdrukkelijk de agenda wil koppelen
         // vragen we agenda-toestemming. Aanmelden doet dat nooit.
         const wantsCalendar = params.get("calendar") === "1";
@@ -82,3 +82,6 @@ export const Route = createFileRoute("/api/auth/google")({
     },
   },
 });
+
+/** Enkel paden binnen deze site (geen //andere-site of /\\andere-site). */
+const isSafePath = (x: string) => x.startsWith("/") && !x.startsWith("//") && !x.startsWith("/\\");

@@ -38,7 +38,7 @@ async function handler({ request }: { request: Request }) {
   } catch (e) {
     const message = e instanceof Error ? e.message : "Onbekende fout";
     console.error(`S3 delete failed: ${message}`);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: "Verwijderen mislukt." }, { status: 500 });
   }
 }
 

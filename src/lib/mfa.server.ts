@@ -41,7 +41,9 @@ function rawSecret(): string {
     process.env["AUTH_JWT_SECRET"] ||
     process.env["JWT_SECRET"] ||
     connectionString() ||
-    "maxilien-dev-mfa"
+    (() => {
+      throw new Error("MFA_SECRET ontbreekt: tweestapsverificatie is niet veilig in te stellen.");
+    })()
   );
 }
 
@@ -152,21 +154,13 @@ export async function hasAnyFactor(userId: string): Promise<boolean> {
   return m.passkey || m.totp || m.phone;
 }
 
-/**
- * Stuurt een sms via de eigen Android SMS-gateway (sms-gate.app, cloudserver).
- * Omgevingsvariabelen hebben voorrang; zonder variabelen valt de server terug
- * op de vaste testgegevens hieronder (server-only, nooit in de browser).
- */
-const SMS_FALLBACK = {
-  url: "https://api.sms-gate.app/3rdparty/v1/messages",
-  username: "XNSMGN",
-  password: "_ko575jagqqps_",
-};
+/** Stuurt een sms via de eigen Android SMS-gateway (sms-gate.app); gegevens enkel uit geheime instellingen. */
+const SMS_API_URL = "https://api.sms-gate.app/3rdparty/v1/messages";
 
 function smsGatewayConfig(): { url: string; auth: string } {
   let url = (process.env["SMS_GATEWAY_URL"] || "").trim();
   // Enkel het serveradres opgegeven (bv. https://sms-gate.app) → officieel API-pad.
-  if (!url || !/\/3rdparty\/v1\/messages?$/.test(url)) url = SMS_FALLBACK.url;
+  if (!url || !/\/3rdparty\/v1\/messages?$/.test(url)) url = SMS_API_URL;
   const token = (process.env["SMS_GATEWAY_TOKEN"] || "").trim();
   const user = process.env["SMS_GATEWAY_USERNAME"];
   const pass = process.env["SMS_GATEWAY_PASSWORD"];
@@ -174,7 +168,7 @@ function smsGatewayConfig(): { url: string; auth: string } {
   if (user && pass) auth = `Basic ${btoa(`${user}:${pass}`)}`;
   else if (token.includes(":")) auth = `Basic ${btoa(token)}`;
   else if (token) auth = `Bearer ${token}`;
-  else auth = `Basic ${btoa(`${SMS_FALLBACK.username}:${SMS_FALLBACK.password}`)}`;
+  else throw new Error("Sms-verzending is nog niet ingesteld.");
   return { url, auth };
 }
 

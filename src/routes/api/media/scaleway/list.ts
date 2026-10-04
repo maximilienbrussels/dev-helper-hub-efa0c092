@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/media/scaleway/list")({
         } catch (error) {
           const message = error instanceof Error ? error.message : "Onbekende fout";
           console.error("[scaleway] lijst mislukt:", message);
-          return Response.json({ error: message, code: "storage_error" }, { status: 502 });
+          return Response.json({ error: "Opslag is tijdelijk niet beschikbaar.", code: "storage_error" }, { status: 502 });
         }
       },
     },

@@ -55,7 +55,7 @@ export const Route = createFileRoute("/api/auth/magic-link")({
             "magic",
             email,
             naam,
-            next?.startsWith("/") ? next : "/account",
+            next && isSafePath(next) ? next : "/account",
             lang ?? "nl",
           );
           return json({
@@ -86,3 +86,6 @@ function json(body: unknown, status = 200) {
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
 }
+
+/** Enkel paden binnen deze site (geen //andere-site of /\\andere-site). */
+const isSafePath = (x: string) => x.startsWith("/") && !x.startsWith("//") && !x.startsWith("/\\");

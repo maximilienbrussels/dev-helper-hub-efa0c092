@@ -18,7 +18,7 @@ import { upsertSocialUser, type SocialProfile, type SocialProvider } from "./soc
 export function buildState(request: Request): string {
   const params = new URL(request.url).searchParams;
   const requested = params.get("next");
-  const next = requested && requested.startsWith("/") ? requested : "";
+  const next = requested && isSafePath(requested) ? requested : "";
   const nonce = crypto.randomUUID().replace(/-/g, "");
   const base = next ? `${nonce}.${btoa(next)}` : nonce;
   // Koppelmodus: de bezoeker is al aangemeld en wil deze aanbieder aan zijn
@@ -90,7 +90,7 @@ export function verifyCallback(
   if (encoded) {
     try {
       const decoded = atob(encoded);
-      if (decoded.startsWith("/")) next = decoded;
+      if (isSafePath(decoded)) next = decoded;
     } catch {
       /* ongeldige state-payload: negeren */
     }
@@ -109,7 +109,7 @@ export async function completeIdentityLink(
   next: string,
 ): Promise<Response> {
   const origin = siteOrigin(request);
-  const landing = next && next.startsWith("/") ? next : "/account";
+  const landing = next && isSafePath(next) ? next : "/account";
   const secure = origin.startsWith("https://");
 
   const finish = (query: string) => {
@@ -190,3 +190,6 @@ export async function completeSocialLogin(
   headers.append("Set-Cookie", cookieHeader(OAUTH_STATE_COOKIE, "", { maxAge: 0, secure }));
   return new Response(null, { status: 302, headers });
 }
+
+/** Enkel paden binnen deze site (geen //andere-site of /\\andere-site). */
+const isSafePath = (x: string) => x.startsWith("/") && !x.startsWith("//") && !x.startsWith("/\\");
