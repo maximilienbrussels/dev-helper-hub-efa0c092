@@ -327,9 +327,12 @@ export const submitExamen = createServerFn({ method: "POST" })
 
     let correct = 0;
     let totaal = 0;
+    const gezien = new Set<string>();
     for (const a of data.antwoorden) {
       const v = map.get(a.vraag_id);
-      if (!v) continue;
+      // Elke vraag telt maar één keer: herhaalde antwoorden leveren geen extra punten op.
+      if (!v || gezien.has(a.vraag_id)) continue;
+      gezien.add(a.vraag_id);
       totaal++;
       const oordeel = await beoordeel(v, {
         sessie: data.sessie,
