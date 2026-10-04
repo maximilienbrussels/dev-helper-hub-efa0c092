@@ -77,7 +77,13 @@ const addSchema = z.object({
     .array(
       z.object({
         url: z.string().min(1).max(1000),
-        storageKey: z.string().max(500).nullable().default(null),
+        storageKey: z
+          .string()
+          .max(500)
+          .regex(/^(animals|media)\/[A-Za-z0-9._\/-]+$/)
+          .refine((k) => !k.includes(".."))
+          .nullable()
+          .default(null),
         altNl: z.string().max(300).default(""),
         altFr: z.string().max(300).default(""),
         altEn: z.string().max(300).default(""),
@@ -144,7 +150,18 @@ export const deleteAlbumPhoto = createServerFn({ method: "POST" })
     `) as unknown as Array<{ url: string; storage_key: string | null }>;
     await db()`delete from album_photos where id = ${data.id}`;
     const row = rows[0];
+    // Bestand alleen wissen als niets anders (ander album of mediabibliotheek) het nog gebruikt.
+    let inUse = false;
     if (row) {
+      const refs = (await db()`
+        select 1 from album_photos where ${row.storage_key}::text is not null and storage_key = ${row.storage_key}
+        union all select 1 from album_photos where url = ${row.url}
+        union all select 1 from media_assets where (${row.storage_key}::text is not null and storage_key = ${row.storage_key})
+        limit 1
+      `.catch(() => [1])) as unknown[];
+      inUse = refs.length > 0;
+    }
+    if (row && !inUse) {
       const { deleteObject, deleteByPublicUrl } = await import("@/lib/s3.server");
       try {
         if (row.storage_key) await deleteObject(row.storage_key);
