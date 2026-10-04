@@ -150,6 +150,7 @@ import { Route as ApiPublicMediaIdRouteImport } from './routes/api/public/media/
 import { Route as ApiPublicPickupPassRouteImport } from './routes/api/public/pickup/pass'
 import { Route as ApiPublicPickupQrRouteImport } from './routes/api/public/pickup/qr'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicWebhooksStripeRouteImport } from './routes/api/public/webhooks/stripe'
 import { Route as ApiSponsorshipCertificateCertificateIdRouteImport } from './routes/api/sponsorship/certificate/$certificateId'
 import { Route as ApiV1MaximAnnouncementsRouteImport } from './routes/api/v1/maxim/announcements'
@@ -874,6 +875,12 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   path: '/api/public/stripe/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksStripeRoute = ApiPublicWebhooksStripeRouteImport.update({
   id: '/api/public/webhooks/stripe',
   path: '/api/public/webhooks/stripe',
@@ -1047,6 +1054,7 @@ export interface FileRoutesByFullPath {
   '/api/public/pickup/pass': typeof ApiPublicPickupPassRoute
   '/api/public/pickup/qr': typeof ApiPublicPickupQrRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
   '/api/sponsorship/certificate/$certificateId': typeof ApiSponsorshipCertificateCertificateIdRoute
   '/api/v1/maxim/announcements': typeof ApiV1MaximAnnouncementsRoute
@@ -1192,6 +1200,7 @@ export interface FileRoutesByTo {
   '/api/public/pickup/pass': typeof ApiPublicPickupPassRoute
   '/api/public/pickup/qr': typeof ApiPublicPickupQrRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
   '/api/sponsorship/certificate/$certificateId': typeof ApiSponsorshipCertificateCertificateIdRoute
   '/api/v1/maxim/announcements': typeof ApiV1MaximAnnouncementsRoute
@@ -1342,6 +1351,7 @@ export interface FileRoutesById {
   '/api/public/pickup/pass': typeof ApiPublicPickupPassRoute
   '/api/public/pickup/qr': typeof ApiPublicPickupQrRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
   '/api/sponsorship/certificate/$certificateId': typeof ApiSponsorshipCertificateCertificateIdRoute
   '/api/v1/maxim/announcements': typeof ApiV1MaximAnnouncementsRoute
@@ -1492,6 +1502,7 @@ export interface FileRouteTypes {
     | '/api/public/pickup/pass'
     | '/api/public/pickup/qr'
     | '/api/public/stripe/webhook'
+    | '/api/public/telegram/webhook'
     | '/api/public/webhooks/stripe'
     | '/api/sponsorship/certificate/$certificateId'
     | '/api/v1/maxim/announcements'
@@ -1637,6 +1648,7 @@ export interface FileRouteTypes {
     | '/api/public/pickup/pass'
     | '/api/public/pickup/qr'
     | '/api/public/stripe/webhook'
+    | '/api/public/telegram/webhook'
     | '/api/public/webhooks/stripe'
     | '/api/sponsorship/certificate/$certificateId'
     | '/api/v1/maxim/announcements'
@@ -1786,6 +1798,7 @@ export interface FileRouteTypes {
     | '/api/public/pickup/pass'
     | '/api/public/pickup/qr'
     | '/api/public/stripe/webhook'
+    | '/api/public/telegram/webhook'
     | '/api/public/webhooks/stripe'
     | '/api/sponsorship/certificate/$certificateId'
     | '/api/v1/maxim/announcements'
@@ -1913,6 +1926,7 @@ export interface RootRouteChildren {
   ApiPublicPickupPassRoute: typeof ApiPublicPickupPassRoute
   ApiPublicPickupQrRoute: typeof ApiPublicPickupQrRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicWebhooksStripeRoute: typeof ApiPublicWebhooksStripeRoute
   ApiSponsorshipCertificateCertificateIdRoute: typeof ApiSponsorshipCertificateCertificateIdRoute
   ApiV1MaximAnnouncementsRoute: typeof ApiV1MaximAnnouncementsRoute
@@ -2908,6 +2922,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/stripe': {
       id: '/api/public/webhooks/stripe'
       path: '/api/public/webhooks/stripe'
@@ -3195,6 +3216,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPickupPassRoute: ApiPublicPickupPassRoute,
   ApiPublicPickupQrRoute: ApiPublicPickupQrRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicWebhooksStripeRoute: ApiPublicWebhooksStripeRoute,
   ApiSponsorshipCertificateCertificateIdRoute:
     ApiSponsorshipCertificateCertificateIdRoute,
