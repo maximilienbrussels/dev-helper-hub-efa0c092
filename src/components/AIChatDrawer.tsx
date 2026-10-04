@@ -956,6 +956,7 @@ export function AIChatDrawer(props: Props = {}) {
       if (!res.ok || !res.body) {
         const txt = await res.text().catch(() => "");
         if (res.status === 429) setError(t("chat.err.rate"));
+        else if (res.status === 401) setError(lang === "fr" ? "Connectez-vous pour discuter avec Maxim." : lang === "en" ? "Sign in to chat with Maxim." : "Log in om met Maxim te chatten.");
         else if (res.status === 402) setError(t("chat.err.credits"));
         else setError(txt || t("chat.err.generic"));
         setMessages(nextHistory);

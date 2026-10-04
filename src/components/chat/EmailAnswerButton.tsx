@@ -11,11 +11,11 @@ import type { Lang } from "@/lib/i18n";
 const COPY: Record<Lang, { open: string; placeholder: string; send: string; sending: string; ok: string; fail: string }> = {
   nl: {
     open: "✉️ Mail me dit overzicht",
-    placeholder: "jouw@e-mail.be",
+    placeholder: "Wordt naar je account-e-mailadres gestuurd. Log in om te mailen.",
     send: "Versturen",
     sending: "Versturen…",
     ok: "Verstuurd! Kijk zeker ook even in je spam.",
-    fail: "Versturen lukte niet. Probeer het straks opnieuw.",
+    fail: "Versturen lukte niet. Ben je ingelogd?",
   },
   fr: {
     open: "✉️ Envoyez-moi ce récapitulatif",
@@ -23,7 +23,7 @@ const COPY: Record<Lang, { open: string; placeholder: string; send: string; send
     send: "Envoyer",
     sending: "Envoi…",
     ok: "Envoyé ! Vérifiez aussi vos spams.",
-    fail: "L'envoi a échoué. Réessayez plus tard.",
+    fail: "L'envoi a échoué. Êtes-vous connecté ?",
   },
   en: {
     open: "✉️ Email me this overview",
@@ -31,14 +31,13 @@ const COPY: Record<Lang, { open: string; placeholder: string; send: string; send
     send: "Send",
     sending: "Sending…",
     ok: "Sent! Do check your spam folder too.",
-    fail: "Sending failed. Please try again later.",
+    fail: "Sending failed. Are you signed in?",
   },
 };
 
 export function EmailAnswerButton({ text, lang }: { text: string; lang: Lang }) {
   const t = COPY[lang] ?? COPY.nl;
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "ok" | "fail">("idle");
 
   async function send() {
@@ -79,14 +78,6 @@ export function EmailAnswerButton({ text, lang }: { text: string; lang: Lang }) 
         void send();
       }}
     >
-      <input
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder={t.placeholder}
-        className="min-w-0 flex-1 rounded-full border border-border bg-white/95 px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400"
-      />
       <button
         type="submit"
         disabled={state === "sending"}
