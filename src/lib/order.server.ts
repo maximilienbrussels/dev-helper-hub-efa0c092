@@ -8,6 +8,8 @@ export const ORG_ID = 1;
 
 export type OrderResult = {
   order_id: number;
+  /** Onraadbare sleutel om deze bestelling online te betalen. */
+  pay_token: string;
   order_reference: string;
   packaging_fee_cents: number;
   structured_communication: string;
@@ -248,8 +250,10 @@ export async function persistOrder(input: OrderInput): Promise<OrderResult> {
   }
 
 
+  const { orderPayToken } = await import("./order-pay-token.server");
   return {
     order_id: order.id,
+    pay_token: await orderPayToken(order.id),
     order_reference: orderReference,
     packaging_fee_cents: packagingFeeCents,
     structured_communication: communication,

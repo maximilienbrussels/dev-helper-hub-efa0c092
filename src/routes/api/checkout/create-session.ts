@@ -10,6 +10,7 @@ import { z } from "zod";
  */
 const schema = z.object({
   order_id: z.number().int().positive(),
+  pay_token: z.string().length(64),
   lang: z.enum(["nl", "fr", "en"]).default("nl"),
 });
 
@@ -28,6 +29,10 @@ export const Route = createFileRoute("/api/checkout/create-session")({
           input = schema.parse(await request.json());
         } catch {
           return Response.json({ error: "invalid_input" }, { status: 400 });
+        }
+        const { verifyOrderPayToken } = await import("@/lib/order-pay-token.server");
+        if (!(await verifyOrderPayToken(input.order_id, input.pay_token))) {
+          return Response.json({ error: "unknown_order" }, { status: 404 });
         }
 
         const { stripeConfigured, stripeServer } = await import("@/lib/stripe.server");
