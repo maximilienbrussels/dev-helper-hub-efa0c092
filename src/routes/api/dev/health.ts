@@ -25,7 +25,10 @@ type ColumnRow = { table_name: string; column_name: string; data_type: string };
 export const Route = createFileRoute("/api/dev/health")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        const { requireRouteAdmin } = await import("@/lib/route-auth.server");
+        const guard = await requireRouteAdmin(request);
+        if ("response" in guard) return guard.response;
         const env = process.env;
         const secrets = {
           DATABASE_URL: Boolean(env["DATABASE_URL"]),
