@@ -315,11 +315,11 @@ export async function consumeToken(
   await db()`delete from public.app_auth_tokens where token = ${row.token}`;
   if (expired || row.used_at) {
     console.warn(
-      `[auth-token] kind=${kind} reden=${row.used_at ? "al-gebruikt" : "verlopen"} (401) email=${row.email}`,
+      `[auth-token] kind=${kind} reden=${row.used_at ? "al-gebruikt" : "verlopen"} (401)`,
     );
     return null;
   }
-  console.info(`[auth-token] kind=${kind} status=geldig email=${row.email}`);
+  console.info(`[auth-token] kind=${kind} status=geldig`);
   return { email: row.email, redirectTo: row.redirect_to, userId: row.user_id };
 
 }
