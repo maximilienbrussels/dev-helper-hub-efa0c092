@@ -101,9 +101,13 @@ export const Route = createFileRoute("/api/chat/email")({
         const { clientIdentifier } = await import("@/lib/rate-limit.server");
         const ip = clientIdentifier(request.headers);
 
+        const { requireRouteAuth } = await import("@/lib/route-auth.server");
+        const guard = await requireRouteAuth(request);
+        if ("response" in guard) return guard.response;
         const body = (await request.json().catch(() => ({}))) as Body;
         const lang: Lang = body.lang === "fr" || body.lang === "en" ? body.lang : "nl";
-        const to = typeof body.to === "string" ? body.to.trim() : "";
+        // Enkel naar het eigen e-mailadres van de ingelogde gebruiker.
+        const to = (guard.auth.email ?? "").trim();
         const content = typeof body.content === "string" ? body.content.slice(0, MAX_CONTENT) : "";
 
         if (!EMAIL_RE.test(to) || content.trim().length < 10) {

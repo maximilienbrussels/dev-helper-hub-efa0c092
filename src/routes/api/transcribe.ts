@@ -9,6 +9,9 @@ export const Route = createFileRoute("/api/transcribe")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { requireRouteAuth } = await import("@/lib/route-auth.server");
+        const guard = await requireRouteAuth(request);
+        if ("response" in guard) return guard.response;
         const { checkRateLimit, clientIdentifier } = await import("@/lib/rate-limit.server");
         const ip = clientIdentifier(request.headers);
         if (!(await checkRateLimit("transcribe", ip, 20, 3600))) {

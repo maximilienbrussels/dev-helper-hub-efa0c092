@@ -3,6 +3,7 @@
  * afhaalcode …) via Brevo naar het adres dat de bezoeker zelf ingeeft.
  */
 import { useState } from "react";
+import { authFetch } from "@/lib/auth-fetch";
 import { Mail } from "lucide-react";
 
 import type { Lang } from "@/lib/i18n";
@@ -43,10 +44,10 @@ export function EmailAnswerButton({ text, lang }: { text: string; lang: Lang }) 
   async function send() {
     setState("sending");
     try {
-      const res = await fetch("/api/chat/email", {
+      const res = await authFetch("/api/chat/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: email, content: text, lang }),
+        body: JSON.stringify({ content: text, lang }),
       });
       setState(res.ok ? "ok" : "fail");
     } catch {

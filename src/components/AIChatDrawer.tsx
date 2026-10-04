@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { authFetch } from "@/lib/auth-fetch";
 import { useRouterState } from "@tanstack/react-router";
 import { useMaximChatControl } from "@/lib/maxim-chat";
 
@@ -945,7 +946,7 @@ export function AIChatDrawer(props: Props = {}) {
     abortRef.current = controller;
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await authFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: nextHistory, animalId, lang, currentRoute }),
@@ -1074,7 +1075,7 @@ export function AIChatDrawer(props: Props = {}) {
           const fd = new FormData();
           const ext = type.includes("mp4") ? "mp4" : type.includes("mpeg") ? "mp3" : "webm";
           fd.append("file", blob, `recording.${ext}`);
-          const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+          const res = await authFetch("/api/transcribe", { method: "POST", body: fd });
           if (!res.ok) {
             setError(c.transcribeFailed);
             return;

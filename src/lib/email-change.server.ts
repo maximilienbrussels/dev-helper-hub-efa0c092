@@ -72,12 +72,14 @@ export async function requestEmailChange(
     const { sendMail } = await import("./email.server");
     const origin = await requestOrigin();
     const url = `${origin}/e-mailadres-bevestigen?token=${encodeURIComponent(token)}`;
-    const naam = current[0].name ?? "";
+    const esc = (v: string) =>
+      v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const naam = esc(String(current[0].name ?? ""));
     const result = await sendMail({
       to: email,
       subject: "Bevestig je nieuwe e-mailadres",
       html: `<p>Dag ${naam || "daar"},</p>
-<p>Je vroeg om het e-mailadres van je account te wijzigen naar <strong>${email}</strong>.</p>
+<p>Je vroeg om het e-mailadres van je account te wijzigen naar <strong>${esc(email)}</strong>.</p>
 <p><a href="${url}">Bevestig je nieuwe e-mailadres</a></p>
 <p>Deze link blijft 24 uur geldig. Heb je dit niet aangevraagd, dan mag je deze mail negeren.</p>`,
       text: `Bevestig je nieuwe e-mailadres: ${url}\n\nDeze link blijft 24 uur geldig.`,
