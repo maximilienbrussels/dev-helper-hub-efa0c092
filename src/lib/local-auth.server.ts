@@ -34,8 +34,8 @@ function jwtSecret(): Uint8Array {
     process.env["AUTH_JWT_SECRET"] ||
     process.env["JWT_SECRET"] ||
     // Terugval zodat preview/dev nooit stukloopt: afgeleid van de DB-URL.
-    connectionString() ||
-    "maximilien-dev-secret-please-configure-AUTH_JWT_SECRET";
+    connectionString();
+  if (!raw) throw new Error("AUTH_JWT_SECRET ontbreekt: sessies kunnen niet veilig ondertekend worden.");
   return new TextEncoder().encode(raw);
 }
 
