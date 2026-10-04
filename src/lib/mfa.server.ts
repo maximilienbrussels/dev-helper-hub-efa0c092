@@ -152,24 +152,38 @@ export async function hasAnyFactor(userId: string): Promise<boolean> {
   return m.passkey || m.totp || m.phone;
 }
 
-/** Stuurt een sms via de eigen Android SMS-gateway (sms-gate.app, cloudserver). */
-export async function sendSms(to: string, message: string): Promise<void> {
-  const url = process.env["SMS_GATEWAY_URL"] || "https://api.sms-gate.app/3rdparty/v1/message";
+/**
+ * Stuurt een sms via de eigen Android SMS-gateway (sms-gate.app, cloudserver).
+ * Omgevingsvariabelen hebben voorrang; zonder variabelen valt de server terug
+ * op de vaste testgegevens hieronder (server-only, nooit in de browser).
+ */
+const SMS_FALLBACK = {
+  url: "https://api.sms-gate.app/3rdparty/v1/messages",
+  username: "XNSMGN",
+  password: "_ko575jagqqps_",
+};
+
+function smsGatewayConfig(): { url: string; auth: string } {
+  let url = (process.env["SMS_GATEWAY_URL"] || "").trim();
+  // Enkel het serveradres opgegeven (bv. https://sms-gate.app) → officieel API-pad.
+  if (!url || !/\/3rdparty\/v1\/messages?$/.test(url)) url = SMS_FALLBACK.url;
+  const token = (process.env["SMS_GATEWAY_TOKEN"] || "").trim();
   const user = process.env["SMS_GATEWAY_USERNAME"];
   const pass = process.env["SMS_GATEWAY_PASSWORD"];
-  // Eén toestel gekoppeld: de gateway kiest het zelf (een verkeerd getypt id laat de sms stil mislukken).
-  const deviceId = undefined as string | undefined;
-  if (!user || !pass) {
-    throw new Error("Sms-verzending is nog niet ingesteld. Kies een andere methode of probeer later.");
-  }
+  let auth: string;
+  if (user && pass) auth = `Basic ${btoa(`${user}:${pass}`)}`;
+  else if (token.includes(":")) auth = `Basic ${btoa(token)}`;
+  else if (token) auth = `Bearer ${token}`;
+  else auth = `Basic ${btoa(`${SMS_FALLBACK.username}:${SMS_FALLBACK.password}`)}`;
+  return { url, auth };
+}
+
+export async function sendSms(to: string, message: string): Promise<void> {
+  const { url, auth } = smsGatewayConfig();
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Basic ${btoa(`${user}:${pass}`)}` },
-    body: JSON.stringify({
-      textMessage: { text: message },
-      phoneNumbers: [to],
-      ...(deviceId ? { deviceId } : {}),
-    }),
+    headers: { "Content-Type": "application/json", Authorization: auth },
+    body: JSON.stringify({ textMessage: { text: message }, phoneNumbers: [to] }),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
