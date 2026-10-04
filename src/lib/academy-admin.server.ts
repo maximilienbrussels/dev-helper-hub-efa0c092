@@ -46,8 +46,8 @@ export async function notifyPublishRequest(p: {
   const url = `${siteOrigin()}/nl/academies`;
   const html = shell(
     "Goedkeuring gevraagd voor een academykaart",
-    `<p><strong>${p.aanvrager}</strong> vraagt om de academy <strong>${p.academy}</strong> live te zetten.</p>
-     ${p.note ? `<p style="background:#f3f6f4;padding:12px;border-radius:8px">${p.note}</p>` : ""}
+    `<p><strong>${esc(p.aanvrager)}</strong> vraagt om de academy <strong>${esc(p.academy)}</strong> live te zetten.</p>
+     ${p.note ? `<p style="background:#f3f6f4;padding:12px;border-radius:8px">${esc(p.note)}</p>` : ""}
      <p><a href="${url}">Openen in het beheerportaal</a></p>`,
   );
   for (const address of to) {
@@ -62,6 +62,9 @@ export async function notifyPublishRequest(p: {
 }
 
 /** Mail naar de aanvrager met de beslissing. */
+const esc = (v: string | null | undefined) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
 export async function notifyPublishDecision(p: {
   to: string;
   academy: string;
@@ -70,10 +73,10 @@ export async function notifyPublishDecision(p: {
 }) {
   const html = shell(
     p.approved ? "Academykaart goedgekeurd" : "Academykaart niet goedgekeurd",
-    `<p>De academy <strong>${p.academy}</strong> is ${
+    `<p>De academy <strong>${esc(p.academy)}</strong> is ${
       p.approved ? "goedgekeurd en staat nu live." : "voorlopig niet gepubliceerd."
     }</p>
-     ${p.note ? `<p style="background:#f3f6f4;padding:12px;border-radius:8px">${p.note}</p>` : ""}`,
+     ${p.note ? `<p style="background:#f3f6f4;padding:12px;border-radius:8px">${esc(p.note)}</p>` : ""}`,
   );
   return sendMail({
     to: p.to,
