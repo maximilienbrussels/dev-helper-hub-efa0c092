@@ -526,7 +526,7 @@ export function CartDrawer() {
                       const r = await fetch("/api/stripe/create-payment-intent", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ order_id: res.order_id, lang }),
+                        body: JSON.stringify({ order_id: res.order_id, pay_token: res.pay_token, lang }),
                       });
                       const data = (await r.json()) as {
                         clientSecret?: string | null;

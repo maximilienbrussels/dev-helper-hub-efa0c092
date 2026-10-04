@@ -26,8 +26,16 @@ export function normalizeInstance(input: string | null | undefined): string {
   if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
   try {
     const url = new URL(raw);
-    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(url.hostname)) return "https://mastodon.social";
-    return url.origin;
+    const host = url.hostname.toLowerCase();
+    // Enkel publieke https-servers op de standaardpoort: geen interne hosts of IP's.
+    if (
+      !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(host) ||
+      url.port ||
+      /\.(local|localhost|internal|lan|home|corp|intranet)$/.test(host)
+    ) {
+      return "https://mastodon.social";
+    }
+    return `https://${host}`;
   } catch {
     return "https://mastodon.social";
   }

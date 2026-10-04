@@ -21,10 +21,8 @@ export const Route = createFileRoute("/api/public/health")({
           await db()`select 1`;
           database = { ok: true };
         } catch (error) {
-          database = {
-            ok: false,
-            error: error instanceof Error ? error.message : String(error),
-          };
+          console.error("[health] databank onbereikbaar:", error);
+          database = { ok: false, error: "unavailable" };
         }
 
         const ok = env.NEON_DATABASE_URL && database.ok;

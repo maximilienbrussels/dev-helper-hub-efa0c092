@@ -8,8 +8,8 @@ export const Route = createFileRoute("/api/infomaniak/status")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const { requireRouteAuth } = await import("@/lib/route-auth.server");
-        const guard = await requireRouteAuth(request);
+        const { requireRouteAdmin } = await import("@/lib/route-auth.server");
+        const guard = await requireRouteAdmin(request);
         if ("response" in guard) return guard.response;
 
         const { infomaniakStatus, readSyncState } = await import("@/lib/infomaniak.server");

@@ -34,8 +34,8 @@ function jwtSecret(): Uint8Array {
     process.env["AUTH_JWT_SECRET"] ||
     process.env["JWT_SECRET"] ||
     // Terugval zodat preview/dev nooit stukloopt: afgeleid van de DB-URL.
-    connectionString() ||
-    "maximilien-dev-secret-please-configure-AUTH_JWT_SECRET";
+    connectionString();
+  if (!raw) throw new Error("AUTH_JWT_SECRET ontbreekt: sessies kunnen niet veilig ondertekend worden.");
   return new TextEncoder().encode(raw);
 }
 
@@ -315,11 +315,11 @@ export async function consumeToken(
   await db()`delete from public.app_auth_tokens where token = ${row.token}`;
   if (expired || row.used_at) {
     console.warn(
-      `[auth-token] kind=${kind} reden=${row.used_at ? "al-gebruikt" : "verlopen"} (401) email=${row.email}`,
+      `[auth-token] kind=${kind} reden=${row.used_at ? "al-gebruikt" : "verlopen"} (401)`,
     );
     return null;
   }
-  console.info(`[auth-token] kind=${kind} status=geldig email=${row.email}`);
+  console.info(`[auth-token] kind=${kind} status=geldig`);
   return { email: row.email, redirectTo: row.redirect_to, userId: row.user_id };
 
 }

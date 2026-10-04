@@ -14,8 +14,8 @@ export const Route = createFileRoute("/api/infomaniak/sync")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { requireRouteAuth } = await import("@/lib/route-auth.server");
-        const guard = await requireRouteAuth(request);
+        const { requireRouteAdmin } = await import("@/lib/route-auth.server");
+        const guard = await requireRouteAdmin(request);
         if ("response" in guard) return guard.response;
 
         const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
