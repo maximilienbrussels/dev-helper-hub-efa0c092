@@ -145,28 +145,52 @@ export const verifyTotpCode = createServerFn({ method: "POST" })
 export const sendSmsCode = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .validator((d: unknown) =>
-    z.object({ phone: z.string().trim().max(30).optional(), purpose: z.enum(["setup", "login"]) }).parse(d),
+    z
+      .object({
+        phone: z.string().trim().max(30).optional(),
+        purpose: z.enum(["setup", "login"]),
+        channel: z.enum(["sms", "whatsapp"]).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as Ctx;
     const mfa = await import("./mfa.server");
     const core = await import("./mfa-core");
     let phone: string | null;
+    let channel: "sms" | "whatsapp" = data.channel ?? "sms";
     if (data.purpose === "setup") {
       await assertMayEnroll(ctx);
-      phone = core.normalizeBelgianMobile(data.phone ?? "");
-      if (!phone) throw new Error("Vul een geldig Belgisch gsm-nummer in (bv. 0470 12 34 56).");
+      if (channel === "whatsapp") {
+        phone = mfa.normalizeE164(data.phone ?? "");
+        if (!phone || phone.startsWith("+32")) {
+          throw new Error("Vul een geldig internationaal nummer in met landcode (bv. +33 6 12 34 56 78).");
+        }
+      } else {
+        phone = core.normalizeBelgianMobile(data.phone ?? "");
+        if (!phone) throw new Error("Vul een geldig Belgisch gsm-nummer in (bv. 0470 12 34 56).");
+      }
     } else {
       const row = await mfa.getMfaRow(ctx.userId);
-      if (!row?.phone_verified_at || row.phone_method !== "sms" || !row.phone) {
+      if (!row?.phone_verified_at || !row.phone || (row.phone_method !== "sms" && row.phone_method !== "whatsapp")) {
         throw new Error("Er is geen gsm-nummer gekoppeld.");
       }
       phone = row.phone;
+      channel = row.phone_method === "whatsapp" ? "whatsapp" : "sms";
     }
     await rate("mfa-sms", ctx.userId, 5, 3600);
     const code = core.randomSixDigits();
-    await mfa.createCode({ userId: ctx.userId, kind: "sms", purpose: data.purpose, code, phone, country: "BE", ttlSeconds: 600 });
-    await mfa.sendSms(phone, `Uw verificatiecode is: ${code}`);
+    await mfa.createCode({
+      userId: ctx.userId,
+      kind: "sms",
+      purpose: data.purpose,
+      code,
+      phone,
+      country: channel === "whatsapp" ? "INTL" : "BE",
+      ttlSeconds: 600,
+    });
+    if (channel === "whatsapp") await mfa.sendWhatsapp(phone, `Maxilien – je verificatiecode is: ${code}`);
+    else await mfa.sendSms(phone, `Uw verificatiecode is: ${code}`);
     return { sentTo: `${phone.slice(0, 5)} •• •• ${phone.slice(-2)}` };
   });
 
@@ -193,8 +217,8 @@ export const verifySmsCode = createServerFn({ method: "POST" })
       await assertMayEnroll(ctx);
       await mfa.upsertMfa(ctx.userId, {
         phone: row.phone,
-        phone_country: "BE",
-        phone_method: "sms",
+        phone_country: row.country === "INTL" ? "INTL" : "BE",
+        phone_method: row.country === "INTL" ? "whatsapp" : "sms",
         phone_verified_at: new Date().toISOString(),
       });
     }
@@ -249,6 +273,52 @@ export const checkIntlVerification = createServerFn({ method: "POST" })
         phone: null,
         phone_country: row.country,
         phone_method: "intl",
+        phone_verified_at: new Date().toISOString(),
+      });
+    }
+    return { status: "approved" as const, token: await mfaSession(ctx.userId) };
+  });
+
+/* ---------------------- buitenland: automatisch via Telegram ---------------------- */
+
+export const startTelegramVerification = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) => z.object({ purpose: z.enum(["setup", "login"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const mfa = await import("./mfa.server");
+    if (data.purpose === "setup") await assertMayEnroll(ctx);
+    else {
+      const row = await mfa.getMfaRow(ctx.userId);
+      if (!row?.phone_verified_at || row.phone_method !== "telegram") throw new Error("Deze methode is niet ingesteld.");
+    }
+    await rate("mfa-telegram", ctx.userId, 8, 3600);
+    const bytes = crypto.getRandomValues(new Uint8Array(18));
+    const token = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    const id = await mfa.createCode({ userId: ctx.userId, kind: "telegram", purpose: data.purpose, code: token, ttlSeconds: 15 * 60 });
+    // Het token staat enkel gehasht in de databank; de bot zoekt via de hash.
+    return { requestId: id, link: `https://t.me/${mfa.TELEGRAM_BOT_USERNAME}?start=${token}` };
+  });
+
+export const checkTelegramVerification = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) => z.object({ requestId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const mfa = await import("./mfa.server");
+    const row = await mfa.getCode(data.requestId, ctx.userId);
+    if (!row || row.kind !== "telegram") throw new Error("Aanvraag niet gevonden.");
+    if (row.status === "rejected") return { status: "rejected" as const, token: null };
+    if (row.status !== "approved") {
+      const expired = new Date(row.expires_at).getTime() < Date.now();
+      return { status: expired ? ("expired" as const) : ("pending" as const), token: null };
+    }
+    await mfa.setCodeStatus(row.id, "used");
+    if (row.purpose === "setup") {
+      await mfa.upsertMfa(ctx.userId, {
+        phone: row.phone,
+        phone_country: row.country,
+        phone_method: "telegram",
         phone_verified_at: new Date().toISOString(),
       });
     }

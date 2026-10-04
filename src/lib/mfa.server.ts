@@ -25,6 +25,7 @@ export function ensureMfaSchema(): Promise<boolean> {
           status text not null default 'pending', attempts int not null default 0,
           decided_by text, decided_at timestamptz, expires_at timestamptz not null,
           created_at timestamptz not null default now())`;
+      await db()`alter table public.app_mfa_codes add column if not exists tg_chat_id bigint`;
       return true;
     } catch (e) {
       console.error("[mfa] schema mislukt", e);
@@ -188,7 +189,7 @@ export async function sendSms(to: string, message: string): Promise<void> {
 
 export async function createCode(input: {
   userId: string;
-  kind: "sms" | "intl";
+  kind: "sms" | "intl" | "telegram";
   purpose: "setup" | "login";
   code: string;
   phone?: string | null;
@@ -246,4 +247,58 @@ export async function setCodeStatus(id: string, status: string, attemptsInc = 0)
 
 export async function bumpAttempts(id: string): Promise<void> {
   await db()`update public.app_mfa_codes set attempts = attempts + 1 where id = ${id}::uuid`;
+}
+
+/* ------------------------------ WhatsApp (Green-API) ------------------------------ */
+
+export function whatsappConfigured(): boolean {
+  return Boolean(process.env["GREEN_API_INSTANCE_ID"] && process.env["GREEN_API_TOKEN"]);
+}
+
+/** Stuurt een WhatsApp-bericht via een Green-API-instantie (gratis ontwikkelaarsplan). */
+export async function sendWhatsapp(toE164: string, message: string): Promise<void> {
+  const id = process.env["GREEN_API_INSTANCE_ID"];
+  const token = process.env["GREEN_API_TOKEN"];
+  if (!id || !token) throw new Error("WhatsApp-verzending is nog niet ingesteld.");
+  const base = (process.env["GREEN_API_URL"] || "https://api.green-api.com").replace(/\/$/, "");
+  const res = await fetch(`${base}/waInstance${id}/sendMessage/${token}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatId: `${toE164.replace(/\D/g, "")}@c.us`, message }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error(`[mfa] green-api ${res.status}: ${body.slice(0, 300)}`);
+    throw new Error("Het WhatsApp-bericht kon niet verstuurd worden. Probeer het straks opnieuw.");
+  }
+}
+
+/* ---------------------------------- Telegram ---------------------------------- */
+
+export const TELEGRAM_BOT_USERNAME = "Maximiliebot";
+
+export async function telegramWebhookSecret(): Promise<string> {
+  const key = process.env["TELEGRAM_API_KEY"];
+  if (!key) throw new Error("TELEGRAM_API_KEY ontbreekt");
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`telegram-webhook:${key}`)));
+  return btoa(String.fromCharCode(...h)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export async function telegramCall(method: string, body: unknown): Promise<void> {
+  const lk = process.env["LOVABLE_API_KEY"];
+  const tk = process.env["TELEGRAM_API_KEY"];
+  if (!lk || !tk) throw new Error("Telegram is niet gekoppeld.");
+  const res = await fetch(`https://connector-gateway.lovable.dev/telegram/${method}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": tk, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) console.error(`[telegram] ${method} ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+}
+
+export function normalizeE164(raw: string): string | null {
+  const d = raw.replace(/[^\d+]/g, "").replace(/^00/, "+");
+  const digits = d.replace(/\D/g, "");
+  if (digits.length < 8 || digits.length > 15) return null;
+  return `+${digits}`;
 }
