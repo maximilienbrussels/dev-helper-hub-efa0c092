@@ -45,6 +45,7 @@ export type MfaStatus = {
   verified: boolean;
   methods: { passkey: boolean; totp: boolean; phone: boolean };
   phone: string | null;
+  phoneMethod: "sms" | "telegram" | null;
   recoveryLeft: number;
 };
 
@@ -64,6 +65,7 @@ export const getMfaStatus = createServerFn({ method: "GET" })
       verified: ctx.claims["mfa"] === true,
       methods,
       phone: row?.phone_verified_at ? row.phone : null,
+      phoneMethod: row?.phone_verified_at ? (row.phone_method === "telegram" ? "telegram" : "sms") : null,
       recoveryLeft: row?.recovery_hashes?.length ?? 0,
     };
   });
@@ -225,60 +227,6 @@ export const verifySmsCode = createServerFn({ method: "POST" })
     return { token: await mfaSession(ctx.userId) };
   });
 
-/* ----------------------- buitenland: via berichtenapp ---------------------- */
-
-export const startIntlVerification = createServerFn({ method: "POST" })
-  .middleware([requireAuth])
-  .validator((d: unknown) =>
-    z.object({ country: z.string().trim().min(2).max(4), purpose: z.enum(["setup", "login"]) }).parse(d),
-  )
-  .handler(async ({ data, context }) => {
-    const ctx = context as unknown as Ctx;
-    const mfa = await import("./mfa.server");
-    if (data.purpose === "setup") await assertMayEnroll(ctx);
-    else {
-      const row = await mfa.getMfaRow(ctx.userId);
-      if (!row?.phone_verified_at || row.phone_method !== "intl") throw new Error("Deze methode is niet ingesteld.");
-    }
-    await rate("mfa-intl", ctx.userId, 6, 3600);
-    const { randomSixDigits } = await import("./mfa-core");
-    const code = randomSixDigits();
-    const id = await mfa.createCode({
-      userId: ctx.userId,
-      kind: "intl",
-      purpose: data.purpose,
-      code,
-      country: data.country.toUpperCase(),
-      ttlSeconds: 24 * 3600,
-    });
-    return { requestId: id, code };
-  });
-
-export const checkIntlVerification = createServerFn({ method: "POST" })
-  .middleware([requireAuth])
-  .validator((d: unknown) => z.object({ requestId: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const ctx = context as unknown as Ctx;
-    const mfa = await import("./mfa.server");
-    const row = await mfa.getCode(data.requestId, ctx.userId);
-    if (!row) throw new Error("Aanvraag niet gevonden.");
-    if (row.status === "rejected") return { status: "rejected" as const, token: null };
-    if (row.status !== "approved") {
-      const expired = new Date(row.expires_at).getTime() < Date.now();
-      return { status: expired ? ("expired" as const) : ("pending" as const), token: null };
-    }
-    await mfa.setCodeStatus(row.id, "used");
-    if (row.purpose === "setup") {
-      await mfa.upsertMfa(ctx.userId, {
-        phone: null,
-        phone_country: row.country,
-        phone_method: "intl",
-        phone_verified_at: new Date().toISOString(),
-      });
-    }
-    return { status: "approved" as const, token: await mfaSession(ctx.userId) };
-  });
-
 /* ---------------------- buitenland: automatisch via Telegram ---------------------- */
 
 export const startTelegramVerification = createServerFn({ method: "POST" })
@@ -325,62 +273,6 @@ export const checkTelegramVerification = createServerFn({ method: "POST" })
     return { status: "approved" as const, token: await mfaSession(ctx.userId) };
   });
 
-/* -------------------------- beheer: goedkeuren --------------------------- */
-
-async function assertApprover(ctx: Ctx) {
-  const { resolveAccess } = await import("./permission-core.server");
-  const a = await resolveAccess({ userId: ctx.userId, claims: ctx.claims });
-  if (!a.fullAccess) throw new Error("Alleen beheerders kunnen verificaties goedkeuren.");
-  return a.email;
-}
-
-export type IntlRequest = {
-  id: string;
-  email: string;
-  name: string | null;
-  country: string | null;
-  code: string | null;
-  purpose: string;
-  status: string;
-  created_at: string;
-  expires_at: string;
-  decided_by: string | null;
-};
-
-export const listIntlRequests = createServerFn({ method: "GET" })
-  .middleware([requireAuth])
-  .handler(async ({ context }): Promise<IntlRequest[]> => {
-    await assertApprover(context as unknown as Ctx);
-    const { ensureMfaSchema } = await import("./mfa.server");
-    await ensureMfaSchema();
-    const { db } = await import("./neon.server");
-    return (await db()`
-      select c.id, u.email, u.name, c.country,
-        case when c.status = 'pending' then c.code_plain else null end as code,
-        c.purpose, c.status, c.created_at, c.expires_at, c.decided_by
-      from public.app_mfa_codes c join public.app_users u on u.id = c.user_id
-      where c.kind = 'intl' and c.created_at > now() - interval '14 days'
-      order by (c.status = 'pending') desc, c.created_at desc limit 100`) as IntlRequest[];
-  });
-
-export const decideIntlRequest = createServerFn({ method: "POST" })
-  .middleware([requireAuth])
-  .validator((d: unknown) =>
-    z.object({ id: z.string().uuid(), decision: z.enum(["approved", "rejected"]) }).parse(d),
-  )
-  .handler(async ({ data, context }) => {
-    const email = await assertApprover(context as unknown as Ctx);
-    const { db } = await import("./neon.server");
-    const rows = (await db()`
-      update public.app_mfa_codes
-      set status = ${data.decision}, decided_by = ${email}, decided_at = now(), code_plain = null
-      where id = ${data.id}::uuid and kind = 'intl' and status = 'pending' and expires_at > now()
-      returning id`) as { id: string }[];
-    if (!rows.length) throw new Error("Deze aanvraag is al behandeld of verlopen.");
-    return { ok: true as const };
-  });
-
-/** Methode verwijderen (enkel na tweede stap, nooit de laatste voor medewerkers). */
 export const removeMfaMethod = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .validator((d: unknown) => z.object({ method: z.enum(["totp", "phone"]) }).parse(d))

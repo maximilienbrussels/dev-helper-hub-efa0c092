@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { Fingerprint, KeyRound, Loader2, MessageSquare, ShieldCheck, Smartphone } from "lucide-react";
+import { ExternalLink, Fingerprint, KeyRound, Loader2, MessageSquare, Send, ShieldCheck, Smartphone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,20 +11,15 @@ import { MLogo } from "@/components/MLogo";
 import { neonSupabaseCompat as supabase } from "@/lib/neon-auth-compat";
 import { isPasskeySupported, passkeyErrorMessage } from "@/lib/auth/passkey";
 import { guessDeviceNickname } from "@/hooks/usePasskeys";
+import { COUNTRIES } from "@/lib/mfa-core";
 import {
-  COUNTRIES,
-  messengerLink,
-  verifyMessage,
-  type MessengerApp,
-} from "@/lib/mfa-core";
-import {
-  checkIntlVerification,
+  checkTelegramVerification,
   confirmTotpSetup,
   getMfaStatus,
   regenerateRecoveryCodes,
   removeMfaMethod,
   sendSmsCode,
-  startIntlVerification,
+  startTelegramVerification,
   startTotpSetup,
   verifySmsCode,
   verifyTotpCode,
@@ -182,7 +177,7 @@ function SecurityPage() {
         <div className="grid gap-3">
           <Choice icon={<Fingerprint />} title="Passkey (aanbevolen)" text="Face ID, vingerafdruk of toestelpincode." onClick={() => setMethod("passkey")} />
           <Choice icon={<KeyRound />} title="Authenticator-app" text="Google Authenticator, Microsoft Authenticator, 1Password…" onClick={() => setMethod("totp")} />
-          <Choice icon={<Smartphone />} title="Telefoon" text="Code per sms (België) of via een berichtenapp (buitenland)." onClick={() => setMethod("phone")} />
+          <Choice icon={<Smartphone />} title="Telefoon" text="Code per sms (België) of bevestigen via Telegram (buitenland)." onClick={() => setMethod("phone")} />
         </div>
       )}
       {method === "passkey" && <PasskeySetup onDone={done} />}
@@ -385,8 +380,8 @@ function CodeInput({ value, onChange, label = "Code" }: { value: string; onChang
   );
 }
 
-function PhoneFlow({ purpose, onDone, fixed }: { purpose: "setup" | "login"; onDone: DoneFn; fixed?: "sms" | "intl" }) {
-  const [country, setCountry] = useState(fixed === "intl" ? "XX" : "BE");
+function PhoneFlow({ purpose, onDone, fixed }: { purpose: "setup" | "login"; onDone: DoneFn; fixed?: "sms" | "telegram" }) {
+  const [country, setCountry] = useState(fixed === "telegram" ? "XX" : "BE");
   const isBE = fixed ? fixed === "sms" : country === "BE";
   return (
     <div className="space-y-4">
@@ -406,7 +401,7 @@ function PhoneFlow({ purpose, onDone, fixed }: { purpose: "setup" | "login"; onD
           </select>
         </label>
       )}
-      {isBE ? <SmsFlow purpose={purpose} onDone={onDone} /> : <IntlFlow purpose={purpose} country={country} onDone={onDone} />}
+      {isBE ? <SmsFlow purpose={purpose} onDone={onDone} /> : <TelegramFlow purpose={purpose} onDone={onDone} />}
     </div>
   );
 }
@@ -472,95 +467,96 @@ function SmsFlow({ purpose, onDone }: { purpose: "setup" | "login"; onDone: Done
   );
 }
 
-const APPS: { id: MessengerApp; label: string }[] = [
-  { id: "whatsapp", label: "WhatsApp" },
-  { id: "threema", label: "Threema" },
-  { id: "signal", label: "Signal" },
-  { id: "messenger", label: "Messenger" },
-];
-
-function IntlFlow({ purpose, country, onDone }: { purpose: "setup" | "login"; country: string; onDone: DoneFn }) {
-  const [req, setReq] = useState<{ requestId: string; code: string } | null>(null);
-  const [state, setState] = useState<"pending" | "rejected" | "expired">("pending");
+function TelegramFlow({ purpose, onDone }: { purpose: "setup" | "login"; onDone: DoneFn }) {
+  const [req, setReq] = useState<{ requestId: string; link: string } | null>(null);
+  const [state, setState] = useState<"idle" | "waiting" | "rejected" | "expired">("idle");
+  const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function start() {
+    setBusy(true);
     try {
-      setState("pending");
-      setReq(await startIntlVerification({ data: { country, purpose } }));
+      const r = await startTelegramVerification({ data: { purpose } });
+      setReq(r);
+      setState("idle");
     } catch (e) {
       toast.error(errMsg(e));
+    } finally {
+      setBusy(false);
     }
   }
 
   useEffect(() => {
+    void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (!req) return;
+    let stopped = false;
     timer.current = setInterval(async () => {
       try {
-        const r = await checkIntlVerification({ data: { requestId: req.requestId } });
+        const r = await checkTelegramVerification({ data: { requestId: req.requestId } });
+        if (stopped) return;
         if (r.status === "approved") {
+          stopped = true;
           if (timer.current) clearInterval(timer.current);
           await onDone(r.token);
         } else if (r.status !== "pending") {
+          stopped = true;
           if (timer.current) clearInterval(timer.current);
           setState(r.status);
         }
       } catch {
         /* volgende poging */
       }
-    }, 5000);
+    }, 1500);
     return () => {
+      stopped = true;
       if (timer.current) clearInterval(timer.current);
     };
   }, [req, onDone]);
 
   if (!req) {
     return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Verificatielink klaarmaken…
+      </p>
+    );
+  }
+
+  if (state === "expired" || state === "rejected") {
+    return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Buiten België sturen we geen sms. Je krijgt een code die je zelf via een berichtenapp naar Maxilien stuurt.
-          Na controle keuren we je aanvraag goed.
+        <p className="text-sm text-destructive">
+          {state === "expired" ? "Deze link is verlopen." : "Dit nummer kon niet bevestigd worden."}
         </p>
-        <Button onClick={() => void start()}>Code aanmaken</Button>
+        <Button variant="outline" onClick={() => void start()} disabled={busy}>
+          Nieuwe link
+        </Button>
       </div>
     );
   }
 
-  const open = (app: MessengerApp) => {
-    void navigator.clipboard?.writeText(verifyMessage(req.code)).catch(() => undefined);
-    if (app === "signal" || app === "messenger") toast.message("Bericht gekopieerd — plak het in het gesprek.");
-    window.open(messengerLink(app, req.code), "_blank", "noopener");
-  };
-
   return (
     <div className="space-y-4" aria-live="polite">
-      <div className="rounded-2xl border border-border bg-muted/40 p-4 text-center">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Jouw code</p>
-        <p className="font-mono text-3xl font-bold tracking-[0.3em]">{req.code}</p>
-      </div>
-      <p className="text-sm">Stuur het bericht "{verifyMessage(req.code)}" via één van deze apps:</p>
-      <div className="grid grid-cols-2 gap-2">
-        {APPS.map((a) => (
-          <Button key={a.id} variant="outline" onClick={() => open(a.id)}>
-            {a.label}
-          </Button>
-        ))}
-      </div>
-      {state === "pending" && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" /> Wachten op goedkeuring… Je mag deze pagina open laten.
-        </p>
-      )}
-      {state !== "pending" && (
-        <div className="space-y-2">
-          <p className="text-sm text-destructive">
-            {state === "rejected" ? "Je aanvraag werd geweigerd." : "Deze code is verlopen."}
-          </p>
-          <Button variant="outline" onClick={() => void start()}>
-            Nieuwe code
-          </Button>
-        </div>
-      )}
+      <ol className="list-decimal space-y-1 pl-5 text-sm">
+        <li>Tik op "Verifieer via Telegram". Telegram opent een gesprek met @Maximiliebot.</li>
+        <li>Tik in Telegram op <strong>Start</strong>.</li>
+        <li>Tik op <strong>Verify My Phone Number</strong> en deel je nummer.</li>
+      </ol>
+      <Button asChild size="lg" className="w-full">
+        <a href={req.link} target="_blank" rel="noopener noreferrer" onClick={() => setState("waiting")}>
+          <Send className="mr-2 size-4" /> Verifieer via Telegram <ExternalLink className="ml-2 size-4 opacity-70" />
+        </a>
+      </Button>
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        {state === "waiting"
+          ? "Wachten op bevestiging in Telegram… Je gaat automatisch verder."
+          : "Deze pagina gaat vanzelf verder zodra je nummer bevestigd is."}
+      </p>
+      <p className="text-xs text-muted-foreground">De link is 15 minuten geldig en werkt maar één keer.</p>
     </div>
   );
 }
@@ -615,10 +611,11 @@ function VerifyStep({ status, email, onDone }: { status: MfaStatus; email: strin
       )}
       {status.methods.phone &&
         (phoneMode ? (
-          <PhoneFlow purpose="login" onDone={onDone} fixed={status.phone ? "sms" : "intl"} />
+          <PhoneFlow purpose="login" onDone={onDone} fixed={status.phoneMethod === "telegram" ? "telegram" : "sms"} />
         ) : (
           <Button variant="outline" onClick={() => setPhoneMode(true)}>
-            <Smartphone className="mr-2 size-4" /> Bevestig via telefoon
+            <Smartphone className="mr-2 size-4" />{" "}
+            {status.phoneMethod === "telegram" ? "Bevestig via Telegram" : "Bevestig via sms"}
           </Button>
         ))}
     </div>
