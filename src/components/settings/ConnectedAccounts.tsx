@@ -18,6 +18,7 @@ import {
   BlueskyIcon,
 } from "@/components/auth/ProviderIcons";
 import { MastodonInstanceDialog } from "@/components/auth/MastodonInstanceDialog";
+import { BlueskyHandleDialog } from "@/components/auth/BlueskyHandleDialog";
 import { useAuthIdentities } from "@/hooks/useAuthIdentities";
 import { startOAuth } from "@/lib/oauth-status";
 import { unlinkMyIdentity, type IdentityProviderId } from "@/lib/identities.functions";
@@ -45,6 +46,7 @@ const LOCKOUT_MESSAGE =
 
 export function ConnectedAccounts() {
   const [mastodonOpen, setMastodonOpen] = useState(false);
+  const [blueskyOpen, setBlueskyOpen] = useState(false);
   const { isLoading, email, isLinked, canUnlink, refreshIdentities } = useAuthIdentities();
 
   const unlink = useMutation({
@@ -63,6 +65,11 @@ export function ConnectedAccounts() {
   function link(provider: IdentityProviderId) {
     if (provider === "mastodon") {
       setMastodonOpen(true);
+      return;
+    }
+    // Bluesky is gedecentraliseerd: eerst de handle vragen, anders vindt de server je account niet.
+    if (provider === "bluesky") {
+      setBlueskyOpen(true);
       return;
     }
     startOAuth(provider, returnPath, undefined, { link: true });
@@ -155,6 +162,19 @@ export function ConnectedAccounts() {
         );
       })}
 
+      <BlueskyHandleDialog
+        open={blueskyOpen}
+        onOpenChange={setBlueskyOpen}
+        copy={{
+          title: "Bluesky koppelen",
+          description: "Vul je Bluesky-naam in. Zo vinden we de server waarop je account staat.",
+          label: "Bluesky-naam",
+          placeholder: "naam.bsky.social",
+          examples: "Bijvoorbeeld",
+          submit: "Verder naar Bluesky",
+        }}
+        onConfirm={(handle) => startOAuth("bluesky", returnPath, handle, { link: true })}
+      />
       <MastodonInstanceDialog
         open={mastodonOpen}
         onOpenChange={setMastodonOpen}

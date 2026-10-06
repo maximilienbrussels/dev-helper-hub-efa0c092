@@ -25,6 +25,8 @@ import { listMyCertificaten, listAcademies } from "@/lib/academy.functions";
 import { neonSupabaseCompat as supabase } from "@/lib/neon-auth-compat";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { SecuritySettings } from "@/components/account/SecuritySettings";
+import { PublicProfileCard } from "@/components/account/PublicProfileCard";
+import { HoefjesPad } from "@/components/HoefjesPad";
 import { EmailField } from "@/components/account/EmailField";
 import { lovable } from "@/integrations/lovable/index";
 import { stashRedirect } from "@/lib/redirect";
@@ -421,7 +423,7 @@ export function AccountPage() {
   const c = COPY[lang];
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as z.infer<typeof searchSchema>;
-  const tab = search.tab ?? "badges";
+  const tab = !search.tab || search.tab === "badges" ? "hoefjes" : search.tab;
 
   useEffect(() => {
     if (!loading && !isLoggedIn) {
@@ -477,10 +479,7 @@ export function AccountPage() {
           }
           className="mt-8"
         >
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-2xl bg-card p-1 sm:grid-cols-4">
-            <TabsTrigger value="badges" className="min-h-[44px] rounded-xl text-xs sm:text-sm">
-              <GraduationCap className="mr-1.5 h-4 w-4 shrink-0" /> {c.tabBadges}
-            </TabsTrigger>
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-2xl bg-card p-1">
             <TabsTrigger value="hoefjes" className="min-h-[44px] rounded-xl text-xs sm:text-sm">
               <Ticket className="mr-1.5 h-4 w-4 shrink-0" /> {c.tabHoefjes}
             </TabsTrigger>
@@ -497,10 +496,6 @@ export function AccountPage() {
               <Settings className="mr-1.5 h-4 w-4 shrink-0" /> {c.tabSettings}
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="badges" className="mt-6">
-            <AcademyTab c={c} />
-          </TabsContent>
           <TabsContent value="hoefjes" className="mt-6">
             <HoefjesTab
               userId={user.id}
@@ -590,12 +585,9 @@ function HoefjesTab({
         hooiBalance={hoefjes}
         locale={lang as "nl" | "fr" | "en"}
       />
-      <LocalLink
-        to={pathFor("pass", lang)}
-        className="inline-flex min-h-[48px] items-center rounded-full border border-border bg-card px-6 text-sm font-medium hover:bg-[color:var(--surface-page)]/60"
-      >
-        {c.viewBadges}
-      </LocalLink>
+      <Card>
+        <HoefjesPad collected={hoefjes} total={doel} />
+      </Card>
     </div>
   );
 }
@@ -1070,6 +1062,7 @@ function SettingsTab({
 
       <CommsPrefsCard userId={userId} profile={profile} c={c} />
 
+      <PublicProfileCard />
       <SecurityCard c={c} />
       <PasswordCard email={email} c={c} />
     </div>
