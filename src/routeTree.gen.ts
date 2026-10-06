@@ -92,6 +92,7 @@ import { Route as WebshopBedanktRouteImport } from './routes/webshop.bedankt'
 import { Route as WebshopWinkelmandRouteImport } from './routes/webshop.winkelmand'
 import { Route as WordPartnerIndexRouteImport } from './routes/word-partner.index'
 import { Route as WordPartnerContactRouteImport } from './routes/word-partner.contact'
+import { Route as LangUIdRouteImport } from './routes/$lang.u.$id'
 import { Route as AuthenticatedAdminBerichtenRouteImport } from './routes/_authenticated/admin.berichten'
 import { Route as AuthenticatedAdminProfielRouteImport } from './routes/_authenticated/admin.profiel'
 import { Route as AuthenticatedAdminScanRouteImport } from './routes/_authenticated/admin.scan'
@@ -574,6 +575,11 @@ const WordPartnerContactRoute = WordPartnerContactRouteImport.update({
   path: '/word-partner/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LangUIdRoute = LangUIdRouteImport.update({
+  id: '/u/$id',
+  path: '/u/$id',
+  getParentRoute: () => LangRoute,
+} as any)
 const AuthenticatedAdminBerichtenRoute =
   AuthenticatedAdminBerichtenRouteImport.update({
     id: '/admin/berichten',
@@ -996,6 +1002,7 @@ export interface FileRoutesByFullPath {
   '/verifieer/': typeof VerifieerIndexRoute
   '/webshop/': typeof WebshopIndexRoute
   '/word-partner/': typeof WordPartnerIndexRoute
+  '/$lang/u/$id': typeof LangUIdRoute
   '/admin/berichten': typeof AuthenticatedAdminBerichtenRoute
   '/admin/profiel': typeof AuthenticatedAdminProfielRoute
   '/admin/scan': typeof AuthenticatedAdminScanRoute
@@ -1142,6 +1149,7 @@ export interface FileRoutesByTo {
   '/verifieer': typeof VerifieerIndexRoute
   '/webshop': typeof WebshopIndexRoute
   '/word-partner': typeof WordPartnerIndexRoute
+  '/$lang/u/$id': typeof LangUIdRoute
   '/admin/berichten': typeof AuthenticatedAdminBerichtenRoute
   '/admin/profiel': typeof AuthenticatedAdminProfielRoute
   '/admin/scan': typeof AuthenticatedAdminScanRoute
@@ -1293,6 +1301,7 @@ export interface FileRoutesById {
   '/verifieer/': typeof VerifieerIndexRoute
   '/webshop/': typeof WebshopIndexRoute
   '/word-partner/': typeof WordPartnerIndexRoute
+  '/$lang/u/$id': typeof LangUIdRoute
   '/_authenticated/admin/berichten': typeof AuthenticatedAdminBerichtenRoute
   '/_authenticated/admin/profiel': typeof AuthenticatedAdminProfielRoute
   '/_authenticated/admin/scan': typeof AuthenticatedAdminScanRoute
@@ -1444,6 +1453,7 @@ export interface FileRouteTypes {
     | '/verifieer/'
     | '/webshop/'
     | '/word-partner/'
+    | '/$lang/u/$id'
     | '/admin/berichten'
     | '/admin/profiel'
     | '/admin/scan'
@@ -1590,6 +1600,7 @@ export interface FileRouteTypes {
     | '/verifieer'
     | '/webshop'
     | '/word-partner'
+    | '/$lang/u/$id'
     | '/admin/berichten'
     | '/admin/profiel'
     | '/admin/scan'
@@ -1740,6 +1751,7 @@ export interface FileRouteTypes {
     | '/verifieer/'
     | '/webshop/'
     | '/word-partner/'
+    | '/$lang/u/$id'
     | '/_authenticated/admin/berichten'
     | '/_authenticated/admin/profiel'
     | '/_authenticated/admin/scan'
@@ -2516,6 +2528,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WordPartnerContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$lang/u/$id': {
+      id: '/$lang/u/$id'
+      path: '/u/$id'
+      fullPath: '/$lang/u/$id'
+      preLoaderRoute: typeof LangUIdRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/_authenticated/admin/berichten': {
       id: '/_authenticated/admin/berichten'
       path: '/admin/berichten'
@@ -3008,11 +3027,13 @@ const AuthenticatedRouteRouteWithChildren =
 interface LangRouteChildren {
   LangSplatRoute: typeof LangSplatRoute
   LangIndexRoute: typeof LangIndexRoute
+  LangUIdRoute: typeof LangUIdRoute
 }
 
 const LangRouteChildren: LangRouteChildren = {
   LangSplatRoute: LangSplatRoute,
   LangIndexRoute: LangIndexRoute,
+  LangUIdRoute: LangUIdRoute,
 }
 
 const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)

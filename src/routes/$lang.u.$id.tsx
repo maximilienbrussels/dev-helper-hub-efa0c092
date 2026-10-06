@@ -4,7 +4,7 @@ import { getPublicProfile } from "@/lib/public-profile.functions";
 import { isLang, DEFAULT_LANG, type Lang } from "@/lib/routes-i18n";
 import { PublicProfilePage } from "@/components/profile/PublicProfilePage";
 
-export const profileQO = (id: string) =>
+const profileQO = (id: string) =>
   queryOptions({ queryKey: ["public-profile", id], queryFn: () => getPublicProfile({ data: { id } }) });
 
 const T: Record<Lang, { title: (n: string) => string; desc: string; anon: string; priv: string }> = {
